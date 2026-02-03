@@ -61,7 +61,8 @@ public partial class LoginView : ContentPage
             var profile = await _db.GetUserProfileAsync(result.LocalId, result.IdToken);
             _session.SetProfile(profile);
 
-            // ? Vai para a aba Discover do AppShell
+            // ? agora sim o Shell passa a existir
+            Application.Current!.MainPage = new AppShell();
             await Shell.Current.GoToAsync("//discover");
         }
         catch
@@ -86,7 +87,7 @@ public partial class LoginView : ContentPage
 
     private async void OnCreateAccountClicked(object sender, EventArgs e)
     {
-        // ? abre Register dentro do Shell
-        await Shell.Current.GoToAsync("register");
+        // ? Login/Register estão fora do Shell -> use Navigation
+        await Navigation.PushAsync(new RegisterView());
     }
 }

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.SeriesListPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False">
+
+    <Grid Padding="18" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <Button Text="←" BackgroundColor="Transparent" Clicked="OnBackClicked" WidthRequest="44" HeightRequest="44"/>
+            <Label Grid.Column="1" x:Name="TitleLabel" Style="{StaticResource TitleLargeLabelStyle}" VerticalTextAlignment="Center"/>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource InputContainerStyle}">
+            <Entry x:Name="SearchEntry"
+                   Placeholder="Buscar nesta categoria..."
+                   Style="{StaticResource InputEntryStyle}"
+                   TextChanged="OnSearchChanged"/>
+        </Border>
+
+        <CollectionView Grid.Row="2" x:Name="List" SelectionMode="None">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="2" />
+            </CollectionView.ItemsLayout>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
+                        <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                            <Border StrokeThickness="0" Padding="0">
+                                <Image Source="{Binding CoverUrl}" Aspect="AspectFill" HeightRequest="120"/>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Row="1" Spacing="2">
+                                <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                <Label Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}" LineBreakMode="TailTruncation"/>
+                                <Button Text="Assistir"
+                                        Style="{StaticResource OutlineButtonStyle}"
+                                        Clicked="OnOpenDramaClicked"
+                                        BindingContext="{Binding .}"
+                                        Margin="0,8,0,0"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

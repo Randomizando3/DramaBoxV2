@@ -31,12 +31,150 @@
 
                 <!-- Card Perfil -->
                 <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                    <VerticalStackLayout Spacing="12">
 
-                        <Border StrokeThickness="0" WidthRequest="92" HeightRequest="92">
+                        <!-- Foto + Nome + Plano -->
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" VerticalOptions="Center">
+
+                            <!-- Avatar -->
+                            <Grid WidthRequest="92" HeightRequest="92">
+                                <Border StrokeThickness="0" WidthRequest="92" HeightRequest="92">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="46"/>
+                                    </Border.StrokeShape>
+
+                                    <!-- fundo degradê -->
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Offset="0">
+                                                <GradientStop.Color>
+                                                    <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
+                                                                     Dark="{StaticResource DarkPrimaryColor}" />
+                                                </GradientStop.Color>
+                                            </GradientStop>
+                                            <GradientStop Offset="1">
+                                                <GradientStop.Color>
+                                                    <AppThemeBinding Light="{StaticResource LightAccentColor}"
+                                                                     Dark="{StaticResource DarkAccentColor}" />
+                                                </GradientStop.Color>
+                                            </GradientStop>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+
+                                    <Grid>
+                                        <Image x:Name="ProfileImage"
+                                               Aspect="AspectFill"
+                                               IsVisible="False"/>
+
+                                        <Label x:Name="InitialsLabel"
+                                               Text="DL"
+                                               TextColor="White"
+                                               FontSize="28"
+                                               FontAttributes="Bold"
+                                               HorizontalTextAlignment="Center"
+                                               VerticalTextAlignment="Center" />
+                                    </Grid>
+                                </Border>
+
+                                <!-- Botão de editar foto -->
+                                <Border
+                                    HorizontalOptions="End"
+                                    VerticalOptions="End"
+                                    Margin="0,0,-6,-6"
+                                    StrokeThickness="0"
+                                    WidthRequest="34"
+                                    HeightRequest="34">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="17"/>
+                                    </Border.StrokeShape>
+                                    <Border.Background>
+                                        <AppThemeBinding Light="{StaticResource LightSurfaceColor}"
+                                                         Dark="{StaticResource DarkSurfaceColor}" />
+                                    </Border.Background>
+
+                                    <Button Text="✎"
+                                            FontSize="14"
+                                            BackgroundColor="Transparent"
+                                            Clicked="OnChangePhotoClicked"/>
+                                </Border>
+                            </Grid>
+
+                            <!-- Infos -->
+                            <VerticalStackLayout Spacing="6" VerticalOptions="Center">
+                                <Label x:Name="NameLabel"
+                                       Text="—"
+                                       FontSize="18"
+                                       FontAttributes="Bold" />
+
+                                <!-- Badge Plano -->
+                                <Border x:Name="PlanBadge"
+                                        StrokeThickness="0"
+                                        Padding="10,6"
+                                        HorizontalOptions="Start">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="14"/>
+                                    </Border.StrokeShape>
+                                    <Border.Background>
+                                        <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
+                                                         Dark="{StaticResource DarkSurfaceSecondaryColor}" />
+                                    </Border.Background>
+
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="★"
+                                               FontAttributes="Bold"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                        <Label x:Name="PlanLabel"
+                                               Text="Free"
+                                               FontAttributes="Bold"
+                                               FontSize="13"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                    </HorizontalStackLayout>
+                                </Border>
+
+                                <Label Text="Conta e estatísticas (mock)"
+                                       Style="{StaticResource MutedLabelStyle}" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <!-- Stats placeholders (vamos fazer depois) -->
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
+                            <Border Style="{StaticResource CardBorderStyle}" Padding="12">
+                                <Label Text="❤️ curtidas (depois)"
+                                       FontAttributes="Bold"
+                                       FontSize="13"
+                                       HorizontalTextAlignment="Center"/>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" Padding="12">
+                                <Label Text="📌 salvos (depois)"
+                                       FontAttributes="Bold"
+                                       FontSize="13"
+                                       HorizontalTextAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <Border Style="{StaticResource CardBorderStyle}" Padding="12">
+                            <Label Text="episódios publicados (depois)"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Assinatura -->
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Assinatura" Style="{StaticResource TitleMediumLabelStyle}" />
+                        <Label Text="Gerencie seu plano."
+                               Style="{StaticResource MutedLabelStyle}" />
+
+                        <!-- botão com tema (sem depender de AppPrimaryColor) -->
+                        <Border StrokeThickness="0">
                             <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="46"/>
+                                <RoundRectangle CornerRadius="14"/>
                             </Border.StrokeShape>
+
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Offset="0">
@@ -54,60 +192,19 @@
                                 </LinearGradientBrush>
                             </Border.Background>
 
-                            <Label Text="DL"
-                                   TextColor="White"
-                                   FontSize="28"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center"
-                                   VerticalTextAlignment="Center" />
+                            <Button Text="Abrir planos"
+                                    Style="{StaticResource GradientButtonStyle}"
+                                    BackgroundColor="Transparent"
+                                    Clicked="OnOpenUpgradeClicked" />
                         </Border>
-
-                        <Label Text="Dany Lee LW" FontSize="18" FontAttributes="Bold" />
-                        <Label Text="Conta e estatísticas (mock)"
-                               Style="{StaticResource MutedLabelStyle}"
-                               HorizontalTextAlignment="Center" />
-
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
-                            <Border Style="{StaticResource CardBorderStyle}">
-                                <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
-                                    <Label Text="❤️ 12,4k curtidas" FontAttributes="Bold" FontSize="13" />
-                                </VerticalStackLayout>
-                            </Border>
-                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
-                                <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
-                                    <Label Text="📌 28 salvos" FontAttributes="Bold" FontSize="13" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </Grid>
-
-                        <Border Style="{StaticResource CardBorderStyle}">
-                            <Label Text="14 ep publicados"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center" />
-                        </Border>
-
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Assinatura -->
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Assinatura" Style="{StaticResource TitleMediumLabelStyle}" />
-                        <Label Text="Gerencie seu plano e pagamentos."
-                               Style="{StaticResource MutedLabelStyle}" />
-
-                        <Button Text="Abrir planos"
-                                BackgroundColor="{StaticResource AppPrimaryColor}"
-                                TextColor="White"
-                                CornerRadius="14"
-                                HeightRequest="48" />
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Sair -->
                 <Border Style="{StaticResource CardBorderStyle}">
                     <Button Text="Sair"
-                            Style="{StaticResource OutlineButtonStyle}" />
+                            Style="{StaticResource OutlineButtonStyle}"
+                            Clicked="OnLogoutClicked"/>
                 </Border>
 
                 <BoxView HeightRequest="8" Opacity="0" />

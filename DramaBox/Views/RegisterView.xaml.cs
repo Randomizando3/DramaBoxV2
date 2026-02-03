@@ -60,13 +60,19 @@ public partial class RegisterView : ContentPage
                 return;
             }
 
+            // ?? cria sessão
             _session.SetSession(result.IdToken, result.RefreshToken, result.LocalId, result.Email);
 
+            // ?? cria perfil (FREE padrão)
             var profile = new UserProfile
             {
                 UserId = result.LocalId,
                 Email = result.Email,
-                DisplayName = name
+
+                // seu model "real"
+                Nome = name,
+                FotoUrl = "",
+                Plano = "free"
             };
 
             var (saved, saveMsg) = await _db.UpsertUserProfileAsync(result.LocalId, profile, result.IdToken);
@@ -78,7 +84,8 @@ public partial class RegisterView : ContentPage
 
             _session.SetProfile(profile);
 
-            // ? Entra direto no app (Discover)
+            // ? agora sim o Shell existe
+            Application.Current!.MainPage = new AppShell();
             await Shell.Current.GoToAsync("//discover");
         }
         catch
@@ -89,7 +96,6 @@ public partial class RegisterView : ContentPage
 
     private async void OnBackToLoginClicked(object sender, EventArgs e)
     {
-        // volta na navegação do Shell
-        await Shell.Current.GoToAsync("..");
+        await Navigation.PopAsync();
     }
 }

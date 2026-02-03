@@ -13,6 +13,7 @@
 
             <!-- Light -->
             <Color x:Key="LightBackgroundColor">#F4F6FB</Color>
+
             <Color x:Key="LightSurfaceColor">#FFFFFF</Color>
             <Color x:Key="LightSurfaceSecondaryColor">#F8FAFC</Color>
             <Color x:Key="LightTextColor">#0F172A</Color>
@@ -34,6 +35,7 @@
             <Color x:Key="DarkPrimaryColor">#6C8CFF</Color>
             <Color x:Key="DarkPrimarySecondaryColor">#93C5FD</Color>
             <Color x:Key="DarkAccentColor">#FF5FA2</Color>
+            <Color x:Key="AppMutedTextColor">#8A8A8A</Color>
 
             <!-- =========================
                  ESTILOS GLOBAIS

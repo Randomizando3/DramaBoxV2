@@ -7,94 +7,101 @@
     NavigationPage.HasNavigationBar="False"
     NavigationPage.HasBackButton="False">
 
-    <ScrollView>
-        <Grid Padding="18" RowSpacing="14">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+    <Grid Padding="18" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!-- Topo -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                <Label Text="Planos"
-                       Style="{StaticResource TitleLargeLabelStyle}" />
+        <!-- Topo -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
+            <Button Text="←"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    CornerRadius="14"
+                    Clicked="OnBackClicked"/>
 
-                <Button Grid.Column="1"
-                        Text="✕"
-                        BackgroundColor="Transparent"
-                        WidthRequest="44"
-                        HeightRequest="44"
-                        CornerRadius="14" />
-            </Grid>
+            <Label Grid.Column="1"
+                   Text="Planos"
+                   Style="{StaticResource TitleLargeLabelStyle}"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"/>
 
-            <Label Grid.Row="1"
-                   Text="Escolha o plano ideal para você."
-                   Style="{StaticResource MutedLabelStyle}" />
-
-            <!-- Free -->
-            <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Free" Style="{StaticResource TitleMediumLabelStyle}" />
-                    <Label Text="Acesso básico para assistir e salvar."
-                           Style="{StaticResource MutedLabelStyle}" />
-
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="• Assistir conteúdos" />
-                        <Label Text="• Salvar na playlist" />
-                        <Label Text="• Perfil básico" />
-                    </VerticalStackLayout>
-
-                    <Border Style="{StaticResource InputContainerStyle}">
-                        <Label Text="Plano atual (mock)" FontAttributes="Bold" HorizontalTextAlignment="Center" />
-                    </Border>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- Premium -->
-            <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}" Margin="0,10,0,0">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="Premium" Style="{StaticResource TitleMediumLabelStyle}" />
-                    <Label Text="Recursos avançados e benefícios."
-                           Style="{StaticResource MutedLabelStyle}" />
-
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="• Sem anúncios (futuro)" />
-                        <Label Text="• Benefícios de criador (futuro)" />
-                        <Label Text="• Conteúdo premium (futuro)" />
-                    </VerticalStackLayout>
-
-                    <!-- Botão degradê -->
-                    <Border StrokeThickness="0">
-                        <Border.StrokeShape>
-                            <RoundRectangle CornerRadius="14"/>
-                        </Border.StrokeShape>
-
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Offset="0">
-                                    <GradientStop.Color>
-                                        <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
-                                                         Dark="{StaticResource DarkPrimaryColor}" />
-                                    </GradientStop.Color>
-                                </GradientStop>
-
-                                <GradientStop Offset="1">
-                                    <GradientStop.Color>
-                                        <AppThemeBinding Light="{StaticResource LightAccentColor}"
-                                                         Dark="{StaticResource DarkAccentColor}" />
-                                    </GradientStop.Color>
-                                </GradientStop>
-                            </LinearGradientBrush>
-                        </Border.Background>
-
-                        <Button Text="Assinar Premium"
-                                Style="{StaticResource GradientButtonStyle}"
-                                BackgroundColor="Transparent" />
-                    </Border>
-                </VerticalStackLayout>
-            </Border>
+            <BoxView Grid.Column="2" WidthRequest="44" HeightRequest="44" Opacity="0"/>
         </Grid>
-    </ScrollView>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="14">
+
+                <Label Text="Escolha seu plano"
+                       Style="{StaticResource TitleMediumLabelStyle}" />
+
+                <Label Text="Por enquanto sem pagamento: ao selecionar, apenas salva a flag no Firebase."
+                       Style="{StaticResource MutedLabelStyle}" />
+
+                <!-- FREE -->
+                <Border x:Name="FreeCard" Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Free"
+                               FontAttributes="Bold"
+                               FontSize="18"/>
+
+                        <Label Text="• Acesso básico ao app"
+                               Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="• Sem benefícios premium (por enquanto)"
+                               Style="{StaticResource MutedLabelStyle}" />
+
+                        <Button Text="Selecionar Free"
+                                Style="{StaticResource OutlineButtonStyle}"
+                                Clicked="OnSelectFreeClicked"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- PREMIUM -->
+                <Border x:Name="PremiumCard" Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Premium"
+                               FontAttributes="Bold"
+                               FontSize="18"/>
+
+                        <Label Text="• Benefícios premium (em construção)"
+                               Style="{StaticResource MutedLabelStyle}" />
+                        <Label Text="• Experiência completa"
+                               Style="{StaticResource MutedLabelStyle}" />
+
+                        <Border StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14"/>
+                            </Border.StrokeShape>
+
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Offset="0">
+                                        <GradientStop.Color>
+                                            <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
+                                                             Dark="{StaticResource DarkPrimaryColor}" />
+                                        </GradientStop.Color>
+                                    </GradientStop>
+                                    <GradientStop Offset="1">
+                                        <GradientStop.Color>
+                                            <AppThemeBinding Light="{StaticResource LightAccentColor}"
+                                                             Dark="{StaticResource DarkAccentColor}" />
+                                        </GradientStop.Color>
+                                    </GradientStop>
+                                </LinearGradientBrush>
+                            </Border.Background>
+
+                            <Button Text="Selecionar Premium"
+                                    Style="{StaticResource GradientButtonStyle}"
+                                    BackgroundColor="Transparent"
+                                    Clicked="OnSelectPremiumClicked"/>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <BoxView HeightRequest="8" Opacity="0" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
 </ContentPage>

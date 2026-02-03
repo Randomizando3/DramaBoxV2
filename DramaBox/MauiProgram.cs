@@ -2,6 +2,9 @@
 using DramaBox.Views;
 using DramaBox.Services;
 
+// ✅ ADICIONE
+using CommunityToolkit.Maui;
+
 #if WINDOWS
 using Microsoft.Maui.LifecycleEvents;
 using Microsoft.UI;
@@ -19,6 +22,11 @@ namespace DramaBox
 
             builder
                 .UseMauiApp<App>()
+
+                // ✅ ADICIONE (pode ficar aqui)
+                .UseMauiCommunityToolkit()
+                .UseMauiCommunityToolkitMediaElement()
+
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -55,7 +63,6 @@ namespace DramaBox
                         if (appWindow is null)
                             return;
 
-                        // Define tamanho
                         appWindow.Resize(new SizeInt32(targetWidth, targetHeight));
 
                         var presenter = appWindow.Presenter as OverlappedPresenter;
