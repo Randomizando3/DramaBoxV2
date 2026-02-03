@@ -1,0 +1,26 @@
+# --- Visual Studio ---
+# A pasta temporária padrão do VS
+.vs/
+**/.vs/
+
+# Ignorar especificamente se a pasta se chamar "web.vs"
+web.vs/
+
+# --- Build e Compilação ---
+# Ignora binários e arquivos objetos gerados automaticamente
+bin/
+obj/
+
+# --- Dependências Web ---
+# Se estiver usando Node.js/npm
+node_modules/
+
+# --- Arquivos de Ambiente e Logs ---
+# Segurança: nunca suba arquivos .env com senhas
+.env
+*.log
+config/FirebaseConfig.cs
+
+# --- Arquivos de Sistema Operacional ---
+.DS_Store
+Thumbs.db

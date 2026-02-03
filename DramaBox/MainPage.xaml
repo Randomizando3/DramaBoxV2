@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="DramaBox">
+
+    <ScrollView>
+        <Grid Padding="24"
+              VerticalOptions="Center"
+              HorizontalOptions="Center">
+
+            <Border Style="{StaticResource CardBorderStyle}"
+                    WidthRequest="320">
+
+                <VerticalStackLayout Spacing="16">
+
+                    <Label
+                        Text="DramaBox"
+                        Style="{StaticResource TitleLargeLabelStyle}"
+                        HorizontalTextAlignment="Center" />
+
+                    <Label
+                        Text="Tela de testes visuais"
+                        Style="{StaticResource MutedLabelStyle}"
+                        HorizontalTextAlignment="Center" />
+
+                    <!-- Botão abrir Login -->
+                    <Grid Margin="0,10,0,0">
+                        <Border StrokeThickness="0">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14"/>
+                            </Border.StrokeShape>
+
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Offset="0.0">
+                                        <GradientStop.Color>
+                                            <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
+                                                             Dark="{StaticResource DarkPrimaryColor}" />
+                                        </GradientStop.Color>
+                                    </GradientStop>
+
+                                    <GradientStop Offset="1.0">
+                                        <GradientStop.Color>
+                                            <AppThemeBinding Light="{StaticResource LightAccentColor}"
+                                                             Dark="{StaticResource DarkAccentColor}" />
+                                        </GradientStop.Color>
+                                    </GradientStop>
+                                </LinearGradientBrush>
+                            </Border.Background>
+
+                            <Button
+                                Text="Abrir Login"
+                                Style="{StaticResource GradientButtonStyle}"
+                                BackgroundColor="Transparent"
+                                Clicked="OnOpenLoginClicked" />
+                        </Border>
+                    </Grid>
+
+                </VerticalStackLayout>
+            </Border>
+
+        </Grid>
+    </ScrollView>
+</ContentPage>

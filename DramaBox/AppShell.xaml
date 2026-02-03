@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="DramaBox.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:DramaBox.Views"
+    Shell.NavBarIsVisible="False">
+
+    <!-- Rotas (para navegação) -->
+    <ShellContent Route="discover" ContentTemplate="{DataTemplate views:DiscoverView}" />
+    <ShellContent Route="community" ContentTemplate="{DataTemplate views:CommunityView}" />
+    <ShellContent Route="creation" ContentTemplate="{DataTemplate views:CreationView}" />
+    <ShellContent Route="playlist" ContentTemplate="{DataTemplate views:PlaylistView}" />
+    <ShellContent Route="profile" ContentTemplate="{DataTemplate views:ProfileView}" />
+    <ShellContent Route="upgrade" ContentTemplate="{DataTemplate views:Upgrade}" />
+
+    <!-- Tabs -->
+    <TabBar>
+
+        <ShellContent
+            Title="Descobrir"
+            Icon="tab_discover.png"
+            ContentTemplate="{DataTemplate views:DiscoverView}" />
+
+        <ShellContent
+            Title="Comunidade"
+            Icon="tab_community.png"
+            ContentTemplate="{DataTemplate views:CommunityView}" />
+
+        <ShellContent
+            Title="Criar"
+            Icon="tab_create.png"
+            ContentTemplate="{DataTemplate views:CreationView}" />
+
+        <ShellContent
+            Title="Playlist"
+            Icon="tab_playlist.png"
+            ContentTemplate="{DataTemplate views:PlaylistView}" />
+
+        <ShellContent
+            Title="Perfil"
+            Icon="tab_profile.png"
+            ContentTemplate="{DataTemplate views:ProfileView}" />
+
+    </TabBar>
+</Shell>

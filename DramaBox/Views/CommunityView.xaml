@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.CommunityView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False">
+
+    <Grid Padding="18" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Topo -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
+            <Label Text="Comunidade"
+                   Style="{StaticResource TitleLargeLabelStyle}" />
+
+            <Button Grid.Column="1"
+                    Text="⚙"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    CornerRadius="14" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="14">
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Atividade"
+                               Style="{StaticResource TitleMediumLabelStyle}" />
+                        <Label Text="Curtidas, comentários e interações (mock)."
+                               Style="{StaticResource MutedLabelStyle}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Notificações"
+                               Style="{StaticResource TitleMediumLabelStyle}" />
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Label Text="💬" FontSize="18" VerticalTextAlignment="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Novo comentário em 'Série X'" FontAttributes="Bold" />
+                                    <Label Text="“Muito bom esse episódio!”" Style="{StaticResource MutedLabelStyle}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <Label Text="❤️" FontSize="18" VerticalTextAlignment="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Você recebeu uma curtida" FontAttributes="Bold" />
+                                    <Label Text="Total acumulado atualizado (mock)." Style="{StaticResource MutedLabelStyle}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <BoxView HeightRequest="8" Opacity="0" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

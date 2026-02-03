@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.LoginView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False">
+
+    <ScrollView>
+        <Grid Padding="18" RowSpacing="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <VerticalStackLayout Grid.Row="0" Spacing="5" HorizontalOptions="Center">
+                <Image Source="logo.png" HeightRequest="100" WidthRequest="250" Aspect="AspectFit" />
+                <Label Text="Bem-vinda de volta" Style="{StaticResource TitleLargeLabelStyle}" HorizontalTextAlignment="Center" />
+                <Label Text="Acesse sua conta para continuar." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+
+            <!-- Card -->
+            <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Margin="0,8,0,0">
+                <VerticalStackLayout Spacing="12">
+
+                    <Label Text="Email" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry x:Name="EmailEntry"
+                               Style="{StaticResource InputEntryStyle}"
+                               Keyboard="Email"
+                               Placeholder="seuemail@dominio.com" />
+                    </Border>
+
+                    <Label Text="Senha" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
+
+                    <!-- Campo de senha -->
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <AbsoluteLayout HeightRequest="48">
+
+                            <Entry x:Name="PasswordEntry"
+                                   Style="{StaticResource InputEntryStyle}"
+                                   IsPassword="True"
+                                   Placeholder="sua senha"
+                                   AbsoluteLayout.LayoutBounds="0,0,1,1"
+                                   AbsoluteLayout.LayoutFlags="All" />
+
+                            <Button Text="👁"
+                                    WidthRequest="40"
+                                    HeightRequest="40"
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    Clicked="OnTogglePasswordClicked"
+                                    AbsoluteLayout.LayoutBounds="1,0.5,40,40"
+                                    AbsoluteLayout.LayoutFlags="PositionProportional" />
+                        </AbsoluteLayout>
+                    </Border>
+
+                    <!-- Botão Login -->
+                    <Border StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Offset="0">
+                                    <GradientStop.Color>
+                                        <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
+                                                         Dark="{StaticResource DarkPrimaryColor}" />
+                                    </GradientStop.Color>
+                                </GradientStop>
+
+                                <GradientStop Offset="1">
+                                    <GradientStop.Color>
+                                        <AppThemeBinding Light="{StaticResource LightAccentColor}"
+                                                         Dark="{StaticResource DarkAccentColor}" />
+                                    </GradientStop.Color>
+                                </GradientStop>
+                            </LinearGradientBrush>
+                        </Border.Background>
+
+                        <Button Text="Entrar"
+                                Style="{StaticResource GradientButtonStyle}"
+                                BackgroundColor="Transparent"
+                                Clicked="OnLoginClicked" />
+                    </Border>
+
+                    <Button Text="Esqueci minha senha"
+                            Style="{StaticResource OutlineButtonStyle}"
+                            Clicked="OnForgotPasswordClicked" />
+
+                    <Button Text="Criar conta"
+                            Style="{StaticResource OutlineButtonStyle}"
+                            Clicked="OnCreateAccountClicked" />
+
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </ScrollView>
+</ContentPage>

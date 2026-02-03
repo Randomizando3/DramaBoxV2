@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.ProfileView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False">
+
+    <Grid Padding="18" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Topo -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
+            <Label Text="Perfil"
+                   Style="{StaticResource TitleLargeLabelStyle}" />
+
+            <Button Grid.Column="1"
+                    Text="⚙"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    CornerRadius="14" />
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="14">
+
+                <!-- Card Perfil -->
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+
+                        <Border StrokeThickness="0" WidthRequest="92" HeightRequest="92">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="46"/>
+                            </Border.StrokeShape>
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Offset="0">
+                                        <GradientStop.Color>
+                                            <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
+                                                             Dark="{StaticResource DarkPrimaryColor}" />
+                                        </GradientStop.Color>
+                                    </GradientStop>
+                                    <GradientStop Offset="1">
+                                        <GradientStop.Color>
+                                            <AppThemeBinding Light="{StaticResource LightAccentColor}"
+                                                             Dark="{StaticResource DarkAccentColor}" />
+                                        </GradientStop.Color>
+                                    </GradientStop>
+                                </LinearGradientBrush>
+                            </Border.Background>
+
+                            <Label Text="DL"
+                                   TextColor="White"
+                                   FontSize="28"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"
+                                   VerticalTextAlignment="Center" />
+                        </Border>
+
+                        <Label Text="Dany Lee LW" FontSize="18" FontAttributes="Bold" />
+                        <Label Text="Conta e estatísticas (mock)"
+                               Style="{StaticResource MutedLabelStyle}"
+                               HorizontalTextAlignment="Center" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
+                            <Border Style="{StaticResource CardBorderStyle}">
+                                <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                    <Label Text="❤️ 12,4k curtidas" FontAttributes="Bold" FontSize="13" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                                <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                                    <Label Text="📌 28 salvos" FontAttributes="Bold" FontSize="13" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+
+                        <Border Style="{StaticResource CardBorderStyle}">
+                            <Label Text="14 ep publicados"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center" />
+                        </Border>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Assinatura -->
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Assinatura" Style="{StaticResource TitleMediumLabelStyle}" />
+                        <Label Text="Gerencie seu plano e pagamentos."
+                               Style="{StaticResource MutedLabelStyle}" />
+
+                        <Button Text="Abrir planos"
+                                BackgroundColor="{StaticResource AppPrimaryColor}"
+                                TextColor="White"
+                                CornerRadius="14"
+                                HeightRequest="48" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Sair -->
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <Button Text="Sair"
+                            Style="{StaticResource OutlineButtonStyle}" />
+                </Border>
+
+                <BoxView HeightRequest="8" Opacity="0" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

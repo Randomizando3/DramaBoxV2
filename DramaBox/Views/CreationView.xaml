@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.CreationView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    NavigationPage.HasBackButton="False">
+
+    <Grid Padding="18" RowSpacing="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Topo -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
+            <Label Text="Área do Criador"
+                   Style="{StaticResource TitleLargeLabelStyle}" />
+
+            <Button Grid.Column="1"
+                    Text="⚙"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    CornerRadius="14" />
+        </Grid>
+
+        <!-- Dashboard -->
+        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}">
+            <VerticalStackLayout Spacing="10">
+
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                    <Label Text="Dashboard"
+                           Style="{StaticResource TitleMediumLabelStyle}" />
+
+                    <Border Grid.Column="1" Style="{StaticResource InputContainerStyle}" Padding="10,6">
+                        <Label Text="Hoje" FontAttributes="Bold" FontSize="12" />
+                    </Border>
+                </Grid>
+
+                <Label Text="Resumo do seu desempenho como criador."
+                       Style="{StaticResource MutedLabelStyle}" />
+
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Receita" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
+                            <Label Text="R$ 128,40" FontAttributes="Bold" FontSize="18" />
+                            <Label Text="Toque para sacar (mín. R$ 50)"
+                                   Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Curtidas" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
+                            <Label Text="12.940" FontAttributes="Bold" FontSize="18" />
+                            <Label Text="Total acumulado" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Shares" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
+                            <Label Text="3.210" FontAttributes="Bold" FontSize="18" />
+                            <Label Text="Total acumulado" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Minhas séries -->
+        <ScrollView Grid.Row="2">
+            <VerticalStackLayout Spacing="12">
+
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                    <Label Text="Minhas séries"
+                           Style="{StaticResource TitleMediumLabelStyle}" />
+
+                    <Button Grid.Column="1"
+                            Text="+"
+                            WidthRequest="44"
+                            HeightRequest="44"
+                            CornerRadius="14"
+                            BackgroundColor="{StaticResource AppPrimaryColor}"
+                            TextColor="White" />
+                </Grid>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto" RowSpacing="12">
+
+                    <!-- Nova série -->
+                    <Border Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                            <Border Style="{StaticResource InputContainerStyle}" WidthRequest="56" HeightRequest="56">
+                                <Grid>
+                                    <Label Text="+" FontSize="22" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                </Grid>
+                            </Border>
+                            <Label Text="Nova série" FontAttributes="Bold" />
+                            <Label Text="Criar do zero" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Série 1 -->
+                    <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="8">
+                            <BoxView HeightRequest="120" CornerRadius="18" Opacity="0.15" />
+                            <Label Text="Sombras da Cidade" FontAttributes="Bold" />
+                            <Label Text="Drama • 8 eps" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Série 2 -->
+                    <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="8">
+                            <BoxView HeightRequest="120" CornerRadius="18" Opacity="0.15" />
+                            <Label Text="Última Chamada" FontAttributes="Bold" />
+                            <Label Text="Suspense • 5 eps" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Série 3 -->
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                        <VerticalStackLayout Spacing="8">
+                            <BoxView HeightRequest="120" CornerRadius="18" Opacity="0.15" />
+                            <Label Text="Minha série (mock)" FontAttributes="Bold" />
+                            <Label Text="Gênero • X eps" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                </Grid>
+
+                <BoxView HeightRequest="8" Opacity="0" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
