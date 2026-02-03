@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.CreatorSeriesEditorPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{StaticResource AppBackgroundColor}">
+
+    <Grid Padding="18" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+            <Button Text="←" BackgroundColor="Transparent" Clicked="OnBackClicked" WidthRequest="44" HeightRequest="44"/>
+            <Label Grid.Column="1" x:Name="TitleLabel" Style="{StaticResource TitleLargeLabelStyle}" LineBreakMode="TailTruncation"/>
+            <Button Grid.Column="2" Text="⟳" BackgroundColor="Transparent" Clicked="OnRefreshClicked" WidthRequest="44" HeightRequest="44"/>
+        </Grid>
+
+        <!-- Cover -->
+        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="0">
+            <Grid>
+                <Image x:Name="CoverImage" Aspect="AspectFill" HeightRequest="220"/>
+                <Button Text="Trocar capa"
+                        HorizontalOptions="End"
+                        VerticalOptions="End"
+                        Margin="12"
+                        Padding="12,8"
+                        CornerRadius="14"
+                        BackgroundColor="#CC000000"
+                        TextColor="White"
+                        Clicked="OnChangeCoverClicked"/>
+            </Grid>
+        </Border>
+
+        <!-- Actions -->
+        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Text="Adicionar episódio"
+                        BackgroundColor="{StaticResource AppPrimaryColor}"
+                        TextColor="White"
+                        CornerRadius="14"
+                        Clicked="OnAddEpisodeClicked"/>
+
+                <Button Grid.Column="1"
+                        Text="Ver no player"
+                        BackgroundColor="Transparent"
+                        CornerRadius="14"
+                        Clicked="OnPlaySeriesClicked"/>
+            </Grid>
+        </Border>
+
+        <!-- Episodes -->
+        <CollectionView Grid.Row="3"
+                        x:Name="EpisodesList"
+                        SelectionMode="None">
+            <CollectionView.EmptyView>
+                <Border Style="{StaticResource CardBorderStyle}" Padding="14">
+                    <Label Text="Sem episódios ainda. Clique em “Adicionar episódio”."
+                           Style="{StaticResource MutedLabelStyle}"
+                           HorizontalTextAlignment="Center"/>
+                </Border>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border StrokeThickness="0" Padding="10,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.Background>
+                                    <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
+                                                     Dark="{StaticResource DarkSurfaceSecondaryColor}"/>
+                                </Border.Background>
+                                <Label Text="{Binding Number}" FontAttributes="Bold"/>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="{Binding Title}" FontAttributes="Bold"/>
+                                <Label Text="{Binding VideoUrl}" FontSize="11"
+                                       LineBreakMode="TailTruncation"
+                                       TextColor="{StaticResource AppMutedTextColor}"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+    </Grid>
+</ContentPage>

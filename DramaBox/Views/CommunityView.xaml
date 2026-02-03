@@ -10,15 +10,26 @@
     <Grid Padding="18" RowSpacing="14">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Topo -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" VerticalOptions="Center">
             <Label Text="Comunidade"
                    Style="{StaticResource TitleLargeLabelStyle}" />
 
+            <!-- ✅ Random -->
             <Button Grid.Column="1"
+                    Text="🎲"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    CornerRadius="14"
+                    Clicked="OnRandomClicked" />
+
+            <!-- ⚙ -->
+            <Button Grid.Column="2"
                     Text="⚙"
                     BackgroundColor="Transparent"
                     WidthRequest="44"
@@ -26,47 +37,74 @@
                     CornerRadius="14" />
         </Grid>
 
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="14">
+        <!-- Tabs -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="10">
+            <Button x:Name="TabRecommended"
+                    Text="Recomendados"
+                    Clicked="OnTabRecommended"
+                    CornerRadius="14" />
 
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Atividade"
-                               Style="{StaticResource TitleMediumLabelStyle}" />
-                        <Label Text="Curtidas, comentários e interações (mock)."
-                               Style="{StaticResource MutedLabelStyle}" />
-                    </VerticalStackLayout>
-                </Border>
+            <Button x:Name="TabPopular"
+                    Grid.Column="1"
+                    Text="Populares"
+                    Clicked="OnTabPopular"
+                    CornerRadius="14" />
 
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="Notificações"
-                               Style="{StaticResource TitleMediumLabelStyle}" />
+            <Button x:Name="TabCommunity"
+                    Grid.Column="2"
+                    Text="Comunidade"
+                    Clicked="OnTabCommunity"
+                    CornerRadius="14" />
+        </Grid>
 
-                        <Border Style="{StaticResource CardBorderStyle}">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="💬" FontSize="18" VerticalTextAlignment="Center" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Novo comentário em 'Série X'" FontAttributes="Bold" />
-                                    <Label Text="“Muito bom esse episódio!”" Style="{StaticResource MutedLabelStyle}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
+        <!-- Feed -->
+        <CollectionView Grid.Row="2"
+                        x:Name="Feed"
+                        ItemsSource="{Binding FeedItems}"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
+                        <Grid ColumnDefinitions="110,*" ColumnSpacing="12">
 
-                        <Border Style="{StaticResource CardBorderStyle}">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Label Text="❤️" FontSize="18" VerticalTextAlignment="Center" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Você recebeu uma curtida" FontAttributes="Bold" />
-                                    <Label Text="Total acumulado atualizado (mock)." Style="{StaticResource MutedLabelStyle}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
-                    </VerticalStackLayout>
-                </Border>
+                            <Border StrokeThickness="0" Padding="0" HeightRequest="70">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Image Source="{Binding CoverUrl}"
+                                       Aspect="AspectFill"
+                                       HeightRequest="70"
+                                       WidthRequest="110"/>
+                            </Border>
 
-                <BoxView HeightRequest="8" Opacity="0" />
-            </VerticalStackLayout>
-        </ScrollView>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="{Binding Title}"
+                                       FontAttributes="Bold"
+                                       FontSize="14"
+                                       LineBreakMode="TailTruncation"/>
+
+                                <Label Text="{Binding CreatorName}"
+                                       FontSize="12"
+                                       TextColor="{StaticResource AppMutedTextColor}"
+                                       LineBreakMode="TailTruncation"/>
+
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <Label Text="{Binding BadgesText}"
+                                           FontSize="12"
+                                           TextColor="{StaticResource AppMutedTextColor}" />
+
+                                    <Button Grid.Column="1"
+                                            Text="▶"
+                                            BackgroundColor="Transparent"
+                                            Clicked="OnPlaySeriesClicked"/>
+                                </Grid>
+                            </VerticalStackLayout>
+
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
     </Grid>
 </ContentPage>

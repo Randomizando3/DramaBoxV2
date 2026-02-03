@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.CommunitySeriesDetailsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{StaticResource AppBackgroundColor}">
+
+    <Grid Padding="18" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+            <Button Text="←" BackgroundColor="Transparent" Clicked="OnBackClicked" WidthRequest="44" HeightRequest="44"/>
+            <Label Grid.Column="1" x:Name="TitleLabel" Style="{StaticResource TitleLargeLabelStyle}" LineBreakMode="TailTruncation"/>
+        </Grid>
+
+        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="0">
+            <Image x:Name="CoverImage" Aspect="AspectFill" HeightRequest="220"/>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="4">
+                    <Label x:Name="CreatorLabel" Text="por —" FontSize="12" TextColor="{StaticResource AppMutedTextColor}"/>
+                    <Label x:Name="SubtitleLabel" Text="" Style="{StaticResource MutedLabelStyle}" LineBreakMode="TailTruncation"/>
+                </VerticalStackLayout>
+
+                <Button Grid.Column="1"
+                        Text="▶"
+                        WidthRequest="54"
+                        HeightRequest="54"
+                        CornerRadius="18"
+                        BackgroundColor="{StaticResource AppPrimaryColor}"
+                        TextColor="White"
+                        Clicked="OnPlayFirstClicked"/>
+            </Grid>
+        </Border>
+
+        <CollectionView Grid.Row="3"
+                        x:Name="EpisodesList"
+                        SelectionMode="Single"
+                        SelectionChanged="OnEpisodeSelected">
+            <CollectionView.EmptyView>
+                <Border Style="{StaticResource CardBorderStyle}" Padding="14">
+                    <Label Text="Sem episódios ainda." Style="{StaticResource MutedLabelStyle}" HorizontalTextAlignment="Center"/>
+                </Border>
+            </CollectionView.EmptyView>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border StrokeThickness="0" Padding="10,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.Background>
+                                    <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
+                                                     Dark="{StaticResource DarkSurfaceSecondaryColor}"/>
+                                </Border.Background>
+                                <Label Text="{Binding Number}" FontAttributes="Bold"/>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="{Binding Title}" FontAttributes="Bold"/>
+                                <Label Text="{Binding VideoUrl}" FontSize="11"
+                                       LineBreakMode="TailTruncation"
+                                       TextColor="{StaticResource AppMutedTextColor}"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

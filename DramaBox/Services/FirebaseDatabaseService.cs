@@ -82,10 +82,14 @@ public sealed class FirebaseDatabaseService
 
     public async Task<(bool ok, string message)> PatchAsync(string path, object body, string? idToken = null)
     {
-        if (string.IsNullOrWhiteSpace(path))
-            return (false, "Path inválido.");
+        // ✅ PATCH no root é válido quando queremos multi-path updates
+        // Ex: PatchAsync("", new Dictionary<string, object?> { ["a/b"]=1, ["c/d"]=2 })
+        var clean = (path ?? "").Trim('/');
 
-        var url = $"{BaseUrl}/{path.TrimStart('/')}.json";
+        var url = string.IsNullOrEmpty(clean)
+            ? $"{BaseUrl}/.json"
+            : $"{BaseUrl}/{clean}.json";
+
         url = WithAuth(url, idToken);
 
         try
@@ -109,6 +113,7 @@ public sealed class FirebaseDatabaseService
             return (false, $"Falha ao salvar (PATCH): {ex.Message}");
         }
     }
+
 
     public async Task<(bool ok, string message)> DeleteAsync(string path, string? idToken = null)
     {
@@ -134,7 +139,6 @@ public sealed class FirebaseDatabaseService
 
     // ==========================================
     // PERFIL
-    // /users/{uid}/profile
     // ==========================================
 
     public async Task<(bool ok, string message)> UpsertUserProfileAsync(string userId, UserProfile profile, string? idToken = null)
@@ -155,8 +159,6 @@ public sealed class FirebaseDatabaseService
 
     // ==========================================
     // CATALOG / DRAMAS
-    // /catalog/dramas/{dramaId}
-    // /catalog/dramas/{dramaId}/episodes/{episodeId}
     // ==========================================
 
     private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web)
@@ -258,10 +260,7 @@ public sealed class FirebaseDatabaseService
     }
 
     // ==========================================
-    // PLAYLIST (SALVOS)  +  CONTINUE ASSISTINDO
-    // ==========================================
-    // Playlist: /users/{uid}/playlist/{dramaId}
-    // Continue:  /users/{uid}/continue/{dramaId}
+    // PLAYLIST (SALVOS) + CONTINUE ASSISTINDO
     // ==========================================
 
     public sealed class PlaylistItem
@@ -285,74 +284,17 @@ public sealed class FirebaseDatabaseService
         public string VideoUrl { get; set; } = "";
 
         public double PositionSeconds { get; set; }
+
         public long UpdatedAtUnix { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 
-    // ✅ AJUSTE PRINCIPAL:
-    // Lê a playlist como JsonElement para suportar:
-    // - formato antigo: users/{uid}/playlist/{dramaId} = true/false
-    // - formato novo:   users/{uid}/playlist/{dramaId} = { PlaylistItem }
     public async Task<Dictionary<string, PlaylistItem>> GetPlaylistMapAsync(string userId, string? idToken = null)
     {
         if (string.IsNullOrWhiteSpace(userId))
             return new();
 
-        try
-        {
-            var raw = await GetAsync<Dictionary<string, JsonElement>>($"users/{userId}/playlist", idToken);
-            if (raw == null || raw.Count == 0)
-                return new Dictionary<string, PlaylistItem>();
-
-            var map = new Dictionary<string, PlaylistItem>();
-
-            foreach (var kv in raw)
-            {
-                var key = kv.Key;
-                var el = kv.Value;
-
-                // formato antigo: true/false
-                if (el.ValueKind == JsonValueKind.True || el.ValueKind == JsonValueKind.False)
-                {
-                    if (el.ValueKind == JsonValueKind.True)
-                    {
-                        map[key] = new PlaylistItem
-                        {
-                            DramaId = key,
-                            Title = "(Salvo)",
-                            Subtitle = "",
-                            CoverUrl = "",
-                            AddedAtUnix = 0
-                        };
-                    }
-                    continue;
-                }
-
-                // formato novo: objeto
-                if (el.ValueKind == JsonValueKind.Object)
-                {
-                    try
-                    {
-                        var item = JsonSerializer.Deserialize<PlaylistItem>(el.GetRawText(), JsonWeb);
-                        if (item != null)
-                        {
-                            if (string.IsNullOrWhiteSpace(item.DramaId))
-                                item.DramaId = key;
-                            map[key] = item;
-                        }
-                    }
-                    catch
-                    {
-                        // ignora item quebrado sem matar a lista inteira
-                    }
-                }
-            }
-
-            return map;
-        }
-        catch
-        {
-            return new Dictionary<string, PlaylistItem>();
-        }
+        return await GetAsync<Dictionary<string, PlaylistItem>>($"users/{userId}/playlist", idToken)
+               ?? new Dictionary<string, PlaylistItem>();
     }
 
     public async Task<List<PlaylistItem>> GetPlaylistAsync(string userId, string? idToken = null)
@@ -371,30 +313,13 @@ public sealed class FirebaseDatabaseService
             .ToList();
     }
 
-    // ✅ Também precisa ser tolerante ao formato antigo bool
     public async Task<bool> IsInPlaylistAsync(string userId, string dramaId, string? idToken = null)
     {
         if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(dramaId))
             return false;
 
-        try
-        {
-            var el = await GetAsync<JsonElement?>($"users/{userId}/playlist/{dramaId}", idToken);
-            if (el == null)
-                return false;
-
-            var v = el.Value;
-
-            if (v.ValueKind == JsonValueKind.True) return true;
-            if (v.ValueKind == JsonValueKind.False) return false;
-            if (v.ValueKind == JsonValueKind.Object) return true;
-
-            return false;
-        }
-        catch
-        {
-            return false;
-        }
+        var item = await GetAsync<PlaylistItem>($"users/{userId}/playlist/{dramaId}", idToken);
+        return item != null;
     }
 
     public async Task<(bool ok, string message)> AddToPlaylistAsync(string userId, DramaSeries drama, string? idToken = null)
@@ -405,17 +330,12 @@ public sealed class FirebaseDatabaseService
         if (drama == null || string.IsNullOrWhiteSpace(drama.Id))
             return (false, "Drama inválido (sem Id).");
 
-        // ✅ CoverUrl pode vir vazio; usa PosterUrl como fallback
-        var cover = drama.CoverUrl;
-        if (string.IsNullOrWhiteSpace(cover))
-            cover = drama.PosterUrl;
-
         var item = new PlaylistItem
         {
             DramaId = drama.Id ?? "",
             Title = drama.Title ?? "",
             Subtitle = drama.Subtitle ?? "",
-            CoverUrl = cover ?? "",
+            CoverUrl = drama.CoverUrl ?? "",
             AddedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
 
@@ -497,11 +417,7 @@ public sealed class FirebaseDatabaseService
         return await DeleteAsync($"users/{userId}/continue/{dramaId}", idToken);
     }
 
-    // Wrapper para compatibilidade com o nome que seu PlayerPage está chamando
-    // ==========================================
-    // CONTINUE ASSISTINDO (método compatível com PlayerPage)
-    // /users/{uid}/continue/{dramaId}
-    // ==========================================
+    // Compatível com PlayerPage
     public async Task<(bool ok, string message)> UpsertContinueWatchingAsync(
         string userId,
         string dramaId,
@@ -537,5 +453,381 @@ public sealed class FirebaseDatabaseService
         };
 
         return await PutAsync($"users/{userId}/continue/{dramaId}", item, idToken);
+    }
+
+    // ============================================================
+    // COMMUNITY + CRIADOR + ROYALTIES
+    // ============================================================
+
+    private static long NowUnix() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+    // ----------------------------
+    // Royalties (admin)
+    // /admin/communityroyalties
+    // ----------------------------
+    public async Task<CommunityRoyaltyConfig> GetCommunityRoyaltiesAsync(string? idToken = null)
+    {
+        var cfg = await GetAsync<CommunityRoyaltyConfig>("admin/communityroyalties", idToken);
+        return cfg ?? new CommunityRoyaltyConfig { UpdatedAtUnix = NowUnix() };
+    }
+
+    public async Task<(bool ok, string message)> UpsertCommunityRoyaltiesAsync(CommunityRoyaltyConfig cfg, string? idToken = null)
+    {
+        if (cfg == null) return (false, "Config inválida.");
+        cfg.UpdatedAtUnix = NowUnix();
+        return await PutAsync("admin/communityroyalties", cfg, idToken);
+    }
+
+    // ----------------------------
+    // Criador: séries/episódios
+    // /community/series/{seriesId}
+    // /community/series/{seriesId}/episodes/{episodeId}
+    // índice: /users/{uid}/createdSeries/{seriesId} = true
+    // ----------------------------
+
+    public async Task<(bool ok, string message)> UpsertCommunitySeriesAsync(string creatorUid, CommunitySeries series, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(creatorUid))
+            return (false, "creatorUid inválido.");
+
+        if (series == null)
+            return (false, "Série inválida.");
+
+        if (string.IsNullOrWhiteSpace(series.Id))
+            series.Id = Guid.NewGuid().ToString("N");
+
+        if (series.CreatedAtUnix <= 0)
+            series.CreatedAtUnix = NowUnix();
+
+        series.UpdatedAtUnix = NowUnix();
+        series.CreatorUserId = creatorUid;
+
+        // salva série + índice do criador
+        var patch = new Dictionary<string, object?>
+        {
+            [$"community/series/{series.Id}"] = series,
+            [$"users/{creatorUid}/createdSeries/{series.Id}"] = true
+        };
+
+        return await PatchAsync("", patch, idToken);
+    }
+
+    public async Task<(bool ok, string message)> UpsertCommunityEpisodeAsync(
+        string creatorUid,
+        string seriesId,
+        CommunityEpisode ep,
+        string? idToken = null
+    )
+    {
+        if (string.IsNullOrWhiteSpace(creatorUid))
+            return (false, "creatorUid inválido.");
+
+        if (string.IsNullOrWhiteSpace(seriesId))
+            return (false, "seriesId inválido.");
+
+        if (ep == null)
+            return (false, "Episódio inválido.");
+
+        if (string.IsNullOrWhiteSpace(ep.Id))
+            ep.Id = Guid.NewGuid().ToString("N");
+
+        if (ep.CreatedAtUnix <= 0)
+            ep.CreatedAtUnix = NowUnix();
+
+        // salva episódio
+        var (ok, msg) = await PutAsync($"community/series/{seriesId}/episodes/{ep.Id}", ep, idToken);
+        if (!ok) return (ok, msg);
+
+        // atualiza updatedAt da série (pra feed)
+        await PatchAsync($"community/series/{seriesId}", new { updatedAtUnix = NowUnix() }, idToken);
+        return (true, "OK");
+    }
+
+    public async Task<CommunitySeries?> GetCommunitySeriesAsync(string seriesId, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(seriesId)) return null;
+        var s = await GetAsync<CommunitySeries>($"community/series/{seriesId}", idToken);
+        if (s != null && string.IsNullOrWhiteSpace(s.Id)) s.Id = seriesId;
+        return s;
+    }
+
+    public async Task<List<CommunityEpisode>> GetCommunityEpisodesAsync(string seriesId, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(seriesId)) return new();
+
+        var dict = await GetAsync<Dictionary<string, CommunityEpisode>>($"community/series/{seriesId}/episodes", idToken);
+        if (dict == null) return new();
+
+        foreach (var kv in dict)
+        {
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.Id))
+                kv.Value.Id = kv.Key;
+        }
+
+        return dict.Values
+            .Where(x => x != null)
+            .OrderBy(x => x.Number)
+            .ToList();
+    }
+
+    public async Task<List<CommunitySeries>> GetCreatorCommunitySeriesAsync(string creatorUid, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(creatorUid)) return new();
+
+        // pega ids
+        var map = await GetAsync<Dictionary<string, bool>>($"users/{creatorUid}/createdSeries", idToken)
+                  ?? new Dictionary<string, bool>();
+
+        var ids = map.Where(kv => kv.Value).Select(kv => kv.Key).ToList();
+        if (ids.Count == 0) return new();
+
+        // baixa as séries uma a uma (MVP). Depois dá pra otimizar.
+        var list = new List<CommunitySeries>();
+        foreach (var id in ids)
+        {
+            var s = await GetCommunitySeriesAsync(id, idToken);
+            if (s != null) list.Add(s);
+        }
+
+        return list
+            .OrderByDescending(x => x.UpdatedAtUnix)
+            .ToList();
+    }
+
+    // ----------------------------
+    // Feed da Comunidade
+    // recommended/popular/random
+    // ----------------------------
+    public async Task<List<CommunitySeries>> GetCommunityFeedAsync(string mode, int take = 30, string? idToken = null)
+    {
+        mode = (mode ?? "").Trim().ToLowerInvariant();
+        if (take <= 0) take = 30;
+
+        var dict = await GetAsync<Dictionary<string, CommunitySeries>>("community/series", idToken);
+        if (dict == null) return new();
+
+        foreach (var kv in dict)
+        {
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.Id))
+                kv.Value.Id = kv.Key;
+        }
+
+        var all = dict.Values
+            .Where(x => x != null && x.IsPublished)
+            .ToList();
+
+        if (all.Count == 0) return new();
+
+        if (mode == "random" || mode == "aleatorio" || mode == "aleatórios")
+        {
+            // shuffle simples
+            var rng = new Random();
+            return all.OrderBy(_ => rng.Next()).Take(take).ToList();
+        }
+
+        // para popular/recommended, usamos métricas
+        var metrics = await GetAsync<Dictionary<string, CommunitySeriesMetrics>>("community/metrics/series", idToken)
+                      ?? new Dictionary<string, CommunitySeriesMetrics>();
+
+        double Score(CommunitySeries s)
+        {
+            // fallback
+            metrics.TryGetValue(s.Id, out var m);
+            m ??= new CommunitySeriesMetrics();
+
+            // "popular": peso likes + shares + minutes
+            // "recommended": favorece updatedAt + minutes (mais retenção)
+            if (mode == "recommended" || mode == "recomendados")
+            {
+                return (m.MinutesWatched * 2.0) + (m.Likes * 1.0) + (m.Shares * 1.5) + (s.UpdatedAtUnix / 1_000_000.0);
+            }
+            else
+            {
+                // popular
+                return (m.MinutesWatched * 1.5) + (m.Likes * 1.0) + (m.Shares * 2.0);
+            }
+        }
+
+        return all
+            .OrderByDescending(Score)
+            .Take(take)
+            .ToList();
+    }
+
+    // ----------------------------
+    // Métricas + Earnings helpers
+    // ----------------------------
+    private async Task<CommunitySeriesMetrics> GetSeriesMetricsAsync(string seriesId, string? idToken)
+    {
+        var m = await GetAsync<CommunitySeriesMetrics>($"community/metrics/series/{seriesId}", idToken);
+        return m ?? new CommunitySeriesMetrics { UpdatedAtUnix = NowUnix() };
+    }
+
+    private async Task SaveSeriesMetricsAsync(string seriesId, CommunitySeriesMetrics m, string? idToken)
+    {
+        m.UpdatedAtUnix = NowUnix();
+        await PutAsync($"community/metrics/series/{seriesId}", m, idToken);
+    }
+
+    private async Task AddEarningsAsync(string creatorUid, string seriesId, double centsDelta, string? idToken)
+    {
+        if (string.IsNullOrWhiteSpace(creatorUid) || string.IsNullOrWhiteSpace(seriesId))
+            return;
+
+        // total creator
+        var totalPath = $"community/earnings/creators/{creatorUid}/centsTotal";
+        var seriesPath = $"community/earnings/creators/{creatorUid}/series/{seriesId}/centsTotal";
+        var updatedPath = $"community/earnings/creators/{creatorUid}/updatedAtUnix";
+        var updatedSeriesPath = $"community/earnings/creators/{creatorUid}/series/{seriesId}/updatedAtUnix";
+
+        // read-modify-write (MVP)
+        var curTotal = await GetAsync<double?>(totalPath, idToken) ?? 0.0;
+        var curSeries = await GetAsync<double?>(seriesPath, idToken) ?? 0.0;
+
+        curTotal += centsDelta;
+        curSeries += centsDelta;
+
+        // não deixa negativo
+        if (curTotal < 0) curTotal = 0;
+        if (curSeries < 0) curSeries = 0;
+
+        var patch = new Dictionary<string, object?>
+        {
+            [totalPath] = curTotal,
+            [seriesPath] = curSeries,
+            [updatedPath] = NowUnix(),
+            [updatedSeriesPath] = NowUnix()
+        };
+
+        await PatchAsync("", patch, idToken);
+    }
+
+    // ----------------------------
+    // Like (toggle) + royalties
+    // /community/interactions/likes/{userId}/{seriesId}
+    // ----------------------------
+    public async Task<(bool ok, string message, bool nowLiked)> ToggleCommunityLikeAsync(
+        string userId,
+        string seriesId,
+        string creatorUid,
+        string? idToken = null
+    )
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return (false, "UserId inválido.", false);
+
+        if (string.IsNullOrWhiteSpace(seriesId))
+            return (false, "SeriesId inválido.", false);
+
+        var likePath = $"community/interactions/likes/{userId}/{seriesId}";
+
+        var already = await GetAsync<bool?>(likePath, idToken) == true;
+        var cfg = await GetCommunityRoyaltiesAsync(idToken);
+
+        // ajusta métricas
+        var m = await GetSeriesMetricsAsync(seriesId, idToken);
+
+        if (already)
+        {
+            // unlike
+            var del = await DeleteAsync(likePath, idToken);
+            if (!del.ok) return (false, del.message, true);
+
+            m.Likes = Math.Max(0, m.Likes - 1);
+            await SaveSeriesMetricsAsync(seriesId, m, idToken);
+
+            // reverte earnings do criador
+            await AddEarningsAsync(creatorUid, seriesId, -cfg.PerLike, idToken);
+
+            return (true, "OK", false);
+        }
+        else
+        {
+            // like
+            var put = await PutAsync(likePath, true, idToken);
+            if (!put.ok) return (false, put.message, false);
+
+            m.Likes += 1;
+            await SaveSeriesMetricsAsync(seriesId, m, idToken);
+
+            await AddEarningsAsync(creatorUid, seriesId, cfg.PerLike, idToken);
+
+            return (true, "OK", true);
+        }
+    }
+
+    // ----------------------------
+    // Share (cada clique soma) + royalties
+    // ----------------------------
+    public async Task<(bool ok, string message)> AddCommunityShareAsync(
+        string seriesId,
+        string creatorUid,
+        string? idToken = null
+    )
+    {
+        if (string.IsNullOrWhiteSpace(seriesId))
+            return (false, "SeriesId inválido.");
+
+        var cfg = await GetCommunityRoyaltiesAsync(idToken);
+        var m = await GetSeriesMetricsAsync(seriesId, idToken);
+
+        m.Shares += 1;
+        await SaveSeriesMetricsAsync(seriesId, m, idToken);
+
+        await AddEarningsAsync(creatorUid, seriesId, cfg.PerShare, idToken);
+
+        return (true, "OK");
+    }
+
+    // ----------------------------
+    // WatchSeconds (idempotente por delta) + royalties
+    // /community/interactions/watchSeconds/{userId}/{seriesId}/{episodeId} = totalSeconds
+    // incrementa MinutesWatched e earnings pelo delta
+    // ----------------------------
+    public async Task<(bool ok, string message)> UpsertCommunityWatchSecondsAsync(
+        string userId,
+        string seriesId,
+        string episodeId,
+        string creatorUid,
+        long totalSeconds,
+        string? idToken = null
+    )
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+            return (false, "UserId inválido.");
+
+        if (string.IsNullOrWhiteSpace(seriesId))
+            return (false, "SeriesId inválido.");
+
+        if (string.IsNullOrWhiteSpace(episodeId))
+            return (false, "EpisodeId inválido.");
+
+        if (totalSeconds < 0) totalSeconds = 0;
+
+        var path = $"community/interactions/watchSeconds/{userId}/{seriesId}/{episodeId}";
+        var last = await GetAsync<long?>(path, idToken) ?? 0;
+
+        if (totalSeconds <= last)
+            return (true, "OK");
+
+        var deltaSeconds = totalSeconds - last;
+
+        // grava novo total
+        var put = await PutAsync(path, totalSeconds, idToken);
+        if (!put.ok) return (false, put.message);
+
+        // converte delta para minutos
+        var deltaMinutes = deltaSeconds / 60.0;
+
+        var m = await GetSeriesMetricsAsync(seriesId, idToken);
+        m.MinutesWatched += deltaMinutes;
+        await SaveSeriesMetricsAsync(seriesId, m, idToken);
+
+        var cfg = await GetCommunityRoyaltiesAsync(idToken);
+        var centsDelta = deltaMinutes * cfg.PerMinuteWatched;
+
+        await AddEarningsAsync(creatorUid, seriesId, centsDelta, idToken);
+
+        return (true, "OK");
     }
 }

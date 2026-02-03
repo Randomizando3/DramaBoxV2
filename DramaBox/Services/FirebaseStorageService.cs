@@ -1,5 +1,10 @@
-﻿using System.Net.Http.Headers;
+﻿// Services/FirebaseStorageService.cs
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Threading.Tasks;
 using DramaBox.Config;
 
 namespace DramaBox.Services;
@@ -8,55 +13,122 @@ public sealed class FirebaseStorageService
 {
     private readonly HttpClient _http;
 
-    public FirebaseStorageService(HttpClient? httpClient = null)
+    public FirebaseStorageService(HttpClient http)
     {
-        _http = httpClient ?? new HttpClient();
+        _http = http;
     }
 
-    public async Task<string> UploadUserProfilePhotoAsync(string userId, string localFilePath, CancellationToken ct = default)
+    private static string Bucket => FirebaseConfig.StorageBucket;
+    private static string ApiKey => FirebaseConfig.ApiKey;
+
+    // ==========================
+    // Upload genérico (helper)
+    // ==========================
+    private async Task<(bool ok, string url, string message)> UploadAsync(
+        Stream stream,
+        string objectPath,
+        string contentType,
+        string? idToken = null
+    )
     {
-        if (string.IsNullOrWhiteSpace(userId))
-            throw new ArgumentException("userId inválido.", nameof(userId));
+        if (stream == null)
+            return (false, "", "Stream inválido.");
 
-        if (string.IsNullOrWhiteSpace(localFilePath) || !File.Exists(localFilePath))
-            throw new FileNotFoundException("Arquivo da foto não encontrado.", localFilePath);
+        if (string.IsNullOrWhiteSpace(objectPath))
+            return (false, "", "objectPath inválido.");
 
-        // Sempre sobrescreve (mesmo caminho) -> atualiza a foto do perfil
-        var objectPath = $"usuarios/{userId}/profile/foto.jpg";
+        try
+        {
+            // Firebase Storage upload (REST)
+            // POST https://firebasestorage.googleapis.com/v0/b/{bucket}/o?name={objectPath}
+            var url = $"https://firebasestorage.googleapis.com/v0/b/{Bucket}/o?name={Uri.EscapeDataString(objectPath)}";
 
-        // Endpoint de upload simples (media)
-        var uploadUrl =
-            $"{FirebaseConfig.StorageBase}?uploadType=media&name={Uri.EscapeDataString(objectPath)}";
+            // se quiser proteger por token (regras), passe auth header
+            using var req = new HttpRequestMessage(HttpMethod.Post, url);
+            req.Headers.Add("X-Goog-Api-Key", ApiKey);
 
-        var bytes = await File.ReadAllBytesAsync(localFilePath, ct);
+            if (!string.IsNullOrWhiteSpace(idToken))
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
 
-        using var content = new ByteArrayContent(bytes);
-        content.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+            using var content = new StreamContent(stream);
+            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
 
-        using var res = await _http.PostAsync(uploadUrl, content, ct);
-        var json = await res.Content.ReadAsStringAsync(ct);
+            req.Content = content;
 
-        if (!res.IsSuccessStatusCode)
-            throw new Exception($"Falha ao enviar foto para o Storage: {json}");
+            var resp = await _http.SendAsync(req);
+            if (!resp.IsSuccessStatusCode)
+                return (false, "", $"Falha upload. HTTP {(int)resp.StatusCode}.");
 
-        // Resposta do Firebase inclui downloadTokens
-        using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
+            var json = await resp.Content.ReadAsStringAsync();
 
-        var downloadTokens = root.TryGetProperty("downloadTokens", out var tokenEl)
-            ? tokenEl.GetString()
-            : null;
+            // resposta tem name + downloadTokens
+            // url de download:
+            // https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{object}?alt=media&token={token}
+            using var doc = JsonDocument.Parse(json);
 
-        // Alguns retornam múltiplos tokens separados por vírgula
-        var token = (downloadTokens ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim();
+            var name = doc.RootElement.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : objectPath;
 
-        // URL pública (alt=media + token)
-        var downloadUrl =
-            $"{FirebaseConfig.StorageBase}/{Uri.EscapeDataString(objectPath)}?alt=media";
+            string token = "";
+            if (doc.RootElement.TryGetProperty("downloadTokens", out var tokEl))
+                token = tokEl.GetString() ?? "";
 
-        if (!string.IsNullOrWhiteSpace(token))
-            downloadUrl += $"&token={Uri.EscapeDataString(token)}";
+            // se não veio token (raro), ainda dá pra montar sem token se regras permitirem
+            var downloadUrl =
+                string.IsNullOrWhiteSpace(token)
+                    ? $"https://firebasestorage.googleapis.com/v0/b/{Bucket}/o/{Uri.EscapeDataString(name ?? objectPath)}?alt=media"
+                    : $"https://firebasestorage.googleapis.com/v0/b/{Bucket}/o/{Uri.EscapeDataString(name ?? objectPath)}?alt=media&token={Uri.EscapeDataString(token)}";
 
-        return downloadUrl;
+            return (true, downloadUrl, "OK");
+        }
+        catch (Exception ex)
+        {
+            return (false, "", $"Erro upload: {ex.Message}");
+        }
+    }
+
+    // ==========================
+    // Seu método existente
+    // ==========================
+    public async Task<(bool ok, string url, string message)> UploadProfilePhotoAsync(
+        Stream stream,
+        string userId,
+        string? idToken = null
+    )
+    {
+        var objectPath = $"users/{userId}/profile.jpg";
+        return await UploadAsync(stream, objectPath, "image/jpeg", idToken);
+    }
+
+    // ==========================
+    // COMMUNITY - uploads
+    // ==========================
+
+    public async Task<(bool ok, string url, string message)> UploadCommunitySeriesCoverAsync(
+        Stream stream,
+        string creatorUid,
+        string seriesId,
+        string extension, // ".jpg" ".png"
+        string? idToken = null
+    )
+    {
+        extension = (extension ?? "").Trim().ToLowerInvariant();
+        var contentType = extension == ".png" ? "image/png" : "image/jpeg";
+        var ext = extension == ".png" ? ".png" : ".jpg";
+
+        var objectPath = $"community/{creatorUid}/series/{seriesId}/cover{ext}";
+        return await UploadAsync(stream, objectPath, contentType, idToken);
+    }
+
+    public async Task<(bool ok, string url, string message)> UploadCommunityEpisodeMp4Async(
+        Stream stream,
+        string creatorUid,
+        string seriesId,
+        string episodeId,
+        string? idToken = null
+    )
+    {
+        // mp4 obrigatório
+        var objectPath = $"community/{creatorUid}/series/{seriesId}/episodes/{episodeId}.mp4";
+        return await UploadAsync(stream, objectPath, "video/mp4", idToken);
     }
 }

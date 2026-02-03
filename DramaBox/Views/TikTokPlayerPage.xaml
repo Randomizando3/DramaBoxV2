@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.TikTokPlayerPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:media="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui.MediaElement"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="Black">
+
+    <Grid>
+
+        <!-- 1) UM ÚNICO PLAYER PARA A PÁGINA TODA -->
+        <media:MediaElement
+            x:Name="Player"
+            Aspect="AspectFill"
+            ShouldAutoPlay="False"
+            ShouldLoopPlayback="False"
+            ShouldShowPlaybackControls="False" />
+
+        <!-- 2) CAROUSEL SÓ PARA O SWIPE / POSIÇÃO (SEM PLAYER DENTRO) -->
+        <CarouselView x:Name="Feed"
+                      ItemsSource="{Binding Items}"
+                      IsSwipeEnabled="True"
+                      Loop="False"
+                      CurrentItemChanged="OnCurrentItemChanged">
+            <CarouselView.ItemsLayout>
+                <LinearItemsLayout Orientation="Vertical"
+                                   SnapPointsType="MandatorySingle" />
+            </CarouselView.ItemsLayout>
+
+            <CarouselView.ItemTemplate>
+                <DataTemplate>
+                    <!-- Transparente: o vídeo está no Player global -->
+                    <Grid BackgroundColor="Transparent" />
+                </DataTemplate>
+            </CarouselView.ItemTemplate>
+        </CarouselView>
+
+        <!-- Overlay inferior esquerdo -->
+        <Grid Padding="16"
+              VerticalOptions="End"
+              HorizontalOptions="Start">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="{Binding Current.CreatorName}"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       FontSize="14" />
+                <Label Text="{Binding Current.DramaTitle}"
+                       TextColor="White"
+                       FontSize="13" />
+                <Label Text="{Binding Current.EpisodeTitle}"
+                       TextColor="White"
+                       Opacity="0.75"
+                       FontSize="12" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Botões flutuantes direita -->
+        <Grid Padding="14"
+              VerticalOptions="Center"
+              HorizontalOptions="End">
+            <VerticalStackLayout Spacing="14">
+
+                <Button Text="♥"
+                        WidthRequest="52"
+                        HeightRequest="52"
+                        CornerRadius="26"
+                        BackgroundColor="#1EFFFFFF"
+                        TextColor="White"
+                        Clicked="OnLikeClicked"/>
+
+                <Button Text="⤴"
+                        WidthRequest="52"
+                        HeightRequest="52"
+                        CornerRadius="26"
+                        BackgroundColor="#1EFFFFFF"
+                        TextColor="White"
+                        Clicked="OnShareClicked"/>
+
+                <Button Text="+"
+                        WidthRequest="52"
+                        HeightRequest="52"
+                        CornerRadius="26"
+                        BackgroundColor="#1EFFFFFF"
+                        TextColor="White"
+                        Clicked="OnPlaylistClicked"/>
+
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Top bar -->
+        <Grid Padding="14"
+              VerticalOptions="Start"
+              HorizontalOptions="Fill"
+              ColumnDefinitions="Auto,*,Auto">
+
+            <Button Text="←"
+                    BackgroundColor="Transparent"
+                    TextColor="White"
+                    Clicked="OnBackClicked" />
+
+            <Label Grid.Column="1"
+                   Text="Player"
+                   HorizontalTextAlignment="Center"
+                   VerticalTextAlignment="Center"
+                   TextColor="White"
+                   FontAttributes="Bold"/>
+
+            <Button Grid.Column="2"
+                    Text="⋯"
+                    BackgroundColor="Transparent"
+                    TextColor="White" />
+        </Grid>
+
+        <!-- Tap na tela: play/pause -->
+        <Grid.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnScreenTapped" NumberOfTapsRequired="1" />
+        </Grid.GestureRecognizers>
+
+    </Grid>
+</ContentPage>
