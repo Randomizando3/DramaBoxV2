@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
 using DramaBox.Models;
 using DramaBox.Services;
 
@@ -12,7 +13,6 @@ public partial class DiscoverView : ContentPage
     private readonly SessionService _session;
     private readonly FirebaseDatabaseService _db;
 
-    // dados
     private readonly ObservableCollection<DramaSeries> _all = new();
     private readonly ObservableCollection<DramaSeries> _featured = new();
     private readonly ObservableCollection<DramaSeries> _top10 = new();
@@ -28,13 +28,12 @@ public partial class DiscoverView : ContentPage
         _session = Resolve<SessionService>() ?? new SessionService();
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
 
-        // binds diretos
         FeaturedCarousel.ItemsSource = _featured;
         TopRow.ItemsSource = _top10;
         FeedList.ItemsSource = _feed;
         CategoryRow.ItemsSource = _categories;
 
-        FeedTitleLabel.Text = _selectedCategory;
+        EnsureDefaultCategories();
     }
 
     private static T? Resolve<T>() where T : class
@@ -46,106 +45,76 @@ public partial class DiscoverView : ContentPage
         await LoadAsync();
     }
 
+    private void EnsureDefaultCategories()
+    {
+        _categories.Clear();
+        _categories.Add("Novidades");
+        _categories.Add("Destaques");
+        _categories.Add("Romântico");
+        _categories.Add("Ação");
+    }
+
     private async Task LoadAsync()
     {
         try
         {
+            // ? Busca em /catalog/dramas
             var list = await _db.GetAllDramasAsync(_session.IdToken);
 
             _all.Clear();
             foreach (var it in list)
                 _all.Add(it);
 
-            // featured
-            var featured = _all
-                .Where(x => x.IsFeatured)
-                .OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank)
-                .ThenByDescending(x => x.UpdatedAtUnix)
-                .ToList();
-
+            // Featured
             _featured.Clear();
-            foreach (var f in featured)
+            foreach (var f in _all.Where(x => x.IsFeatured).Take(12))
                 _featured.Add(f);
 
-            // top 10
-            var top = _all
-                .OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank)
-                .ThenByDescending(x => x.UpdatedAtUnix)
-                .Take(10)
-                .ToList();
-
+            // Top 10
             _top10.Clear();
-            foreach (var t in top)
+            foreach (var t in _all.OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank).Take(10))
                 _top10.Add(t);
 
-            // categorias (fixas + dinâmicas do json)
-            var dynCats = _all
-                .Where(x => x.Categories != null)
-                .SelectMany(x => x.Categories!)
-                .Where(c => !string.IsNullOrWhiteSpace(c))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(c => c)
-                .ToList();
-
-            _categories.Clear();
-
-            // “principais” primeiro
-            AddCatIfMissing("Novidades");
-            AddCatIfMissing("Destaques");
-            AddCatIfMissing("Romântico");
-            AddCatIfMissing("Ação");
-
-            foreach (var c in dynCats)
-                AddCatIfMissing(c);
-
-            // feed inicial
-            BuildFeed();
+            // Atualiza feed
+            ApplyFilters(SearchEntry?.Text);
         }
         catch
         {
             _featured.Clear();
             _top10.Clear();
             _feed.Clear();
-            _categories.Clear();
         }
     }
 
-    private void AddCatIfMissing(string cat)
+    private void ApplyFilters(string? query)
     {
-        if (string.IsNullOrWhiteSpace(cat)) return;
+        query ??= "";
+        query = query.Trim();
 
-        if (!_categories.Any(x => string.Equals(x, cat, StringComparison.OrdinalIgnoreCase)))
-            _categories.Add(cat);
-    }
+        FeedTitle.Text = string.IsNullOrWhiteSpace(_selectedCategory) ? "Novidades" : _selectedCategory;
 
-    private void BuildFeed()
-    {
-        var query = (SearchEntry?.Text ?? "").Trim();
-        var category = (_selectedCategory ?? "").Trim();
+        var baseSet = _all.AsEnumerable();
 
-        FeedTitleLabel.Text = string.IsNullOrWhiteSpace(category) ? "Novidades" : category;
-
-        var src = _all.AsEnumerable();
-
-        // filtro categoria
-        if (!string.IsNullOrWhiteSpace(category))
+        // categoria
+        if (!string.IsNullOrWhiteSpace(_selectedCategory))
         {
-            src = src.Where(d =>
+            baseSet = baseSet.Where(d =>
                 d.Categories != null &&
-                d.Categories.Any(c => string.Equals(c, category, StringComparison.OrdinalIgnoreCase)));
+                d.Categories.Any(c => string.Equals(c, _selectedCategory, StringComparison.OrdinalIgnoreCase)));
         }
 
-        // filtro busca
+        // busca
         if (!string.IsNullOrWhiteSpace(query))
         {
-            src = src.Where(d =>
+            baseSet = baseSet.Where(d =>
                 (d.Title ?? "").Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 (d.Subtitle ?? "").Contains(query, StringComparison.OrdinalIgnoreCase));
         }
 
-        var list = src
+        var list = baseSet
             .OrderByDescending(x => x.UpdatedAtUnix)
             .ThenBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank)
+            .Take(30)
             .ToList();
 
         _feed.Clear();
@@ -154,79 +123,63 @@ public partial class DiscoverView : ContentPage
     }
 
     // =========================
-    // EVENTS (ASSINATURAS CERTAS)
+    // EVENTS
     // =========================
 
-    private void OnSearchChanged(object sender, TextChangedEventArgs e)
-        => BuildFeed();
+    private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
+        => ApplyFilters(e.NewTextValue);
 
     private async void OnVipClicked(object sender, EventArgs e)
         => await Shell.Current.GoToAsync("upgrade");
 
-    private async void OnFeaturedSelected(object sender, SelectionChangedEventArgs e)
-    {
-        var drama = e.CurrentSelection?.FirstOrDefault() as DramaSeries;
-        ((CollectionView)sender).SelectedItem = null;
-        if (drama == null) return;
-
-        await OpenDramaAsync(drama);
-    }
-
     private void OnCategorySelected(object sender, SelectionChangedEventArgs e)
     {
         var cat = e.CurrentSelection?.FirstOrDefault() as string;
-        ((CollectionView)sender).SelectedItem = null;
-
         if (string.IsNullOrWhiteSpace(cat))
             return;
 
         _selectedCategory = cat;
-        BuildFeed();
+        ApplyFilters(SearchEntry?.Text);
+
+        // limpa seleção pra poder clicar de novo no mesmo chip
+        CategoryRow.SelectedItem = null;
+    }
+
+    private async Task OpenDramaAsync(DramaSeries? drama)
+    {
+        if (drama == null) return;
+
+        var id = drama.Id ?? "";
+        if (string.IsNullOrWhiteSpace(id)) return;
+
+        // sua tela de detalhes está esperando ID (padrão que você já está usando)
+        await Navigation.PushAsync(new DramaDetailsPage(id));
+    }
+
+    private async void OnFeaturedSelected(object sender, SelectionChangedEventArgs e)
+    {
+        var drama = e.CurrentSelection?.FirstOrDefault() as DramaSeries;
+        FeaturedCarousel.SelectedItem = null;
+        await OpenDramaAsync(drama);
     }
 
     private async void OnTopSelected(object sender, SelectionChangedEventArgs e)
     {
         var drama = e.CurrentSelection?.FirstOrDefault() as DramaSeries;
-        ((CollectionView)sender).SelectedItem = null;
-        if (drama == null) return;
-
+        TopRow.SelectedItem = null;
         await OpenDramaAsync(drama);
     }
 
     private async void OnFeedSelected(object sender, SelectionChangedEventArgs e)
     {
         var drama = e.CurrentSelection?.FirstOrDefault() as DramaSeries;
-        ((CollectionView)sender).SelectedItem = null;
-        if (drama == null) return;
-
+        FeedList.SelectedItem = null;
         await OpenDramaAsync(drama);
     }
 
-    private async Task OpenDramaAsync(DramaSeries drama)
-    {
-        // ? Escolha 1 (SE sua página recebe DramaSeries)
-        // await Navigation.PushAsync(new DramaDetailsPage(drama));
-
-        // ? Escolha 2 (SE sua página recebe string dramaId)
-        var id = drama.Id ?? "";
-        if (string.IsNullOrWhiteSpace(id)) return;
-
-        await Navigation.PushAsync(new DramaDetailsPage(id));
-    }
+    private async void OnSeeAllCategoryClicked(object sender, EventArgs e)
+        => await Navigation.PushAsync(new SeriesListPage(_selectedCategory, _selectedCategory, _all.ToList()));
 
     private async void OnSeeAllTopClicked(object sender, EventArgs e)
-    {
-        // “Top” = lista completa ordenada por rank (ou topRank)
-        var all = _all
-            .OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank)
-            .ThenByDescending(x => x.UpdatedAtUnix)
-            .ToList();
-
-        await Navigation.PushAsync(new SeriesListPage("Top Séries", "TOP", all));
-    }
-
-    private async void OnSeeAllFeedClicked(object sender, EventArgs e)
-    {
-        await Navigation.PushAsync(new SeriesListPage(_selectedCategory, _selectedCategory, _all.ToList()));
-    }
+        => await Navigation.PushAsync(new SeriesListPage("Top Séries", "__TOP__", _all.ToList()));
 }

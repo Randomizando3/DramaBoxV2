@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using Microsoft.Maui.Controls;
 using DramaBox.Models;
 
 namespace DramaBox.Views;
@@ -32,17 +30,20 @@ public partial class SeriesListPage : ContentPage
         query ??= "";
         query = query.Trim();
 
-        IEnumerable<DramaSeries> baseSet = _all;
+        IEnumerable<DramaSeries> baseSet;
 
-        // filtro por categoria
-        if (!string.IsNullOrWhiteSpace(_category))
+        // modo especial "Top"
+        if (string.Equals(_category, "__TOP__", StringComparison.OrdinalIgnoreCase))
         {
-            baseSet = baseSet.Where(d =>
+            baseSet = _all.OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank);
+        }
+        else
+        {
+            baseSet = _all.Where(d =>
                 d.Categories != null &&
                 d.Categories.Any(c => string.Equals(c, _category, StringComparison.OrdinalIgnoreCase)));
         }
 
-        // filtro por busca (title/subtitle)
         if (!string.IsNullOrWhiteSpace(query))
         {
             baseSet = baseSet.Where(d =>
@@ -68,13 +69,10 @@ public partial class SeriesListPage : ContentPage
 
     private async void OnOpenDramaClicked(object sender, EventArgs e)
     {
-        // ? IMPORTANTE: sua tela de detalhes está esperando string (dramaId)
         if (sender is BindableObject bo && bo.BindingContext is DramaSeries drama)
         {
             var id = drama.Id ?? "";
-            if (string.IsNullOrWhiteSpace(id))
-                return;
-
+            if (string.IsNullOrWhiteSpace(id)) return;
             await Navigation.PushAsync(new DramaDetailsPage(id));
         }
     }

@@ -4,32 +4,151 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
-    NavigationPage.HasNavigationBar="False">
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{StaticResource AppBackgroundColor}">
 
     <Grid Padding="18" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10">
-            <Button Text="←" BackgroundColor="Transparent" Clicked="OnBackClicked" WidthRequest="44" HeightRequest="44"/>
-            <Label Grid.Column="1" x:Name="TitleLabel" Style="{StaticResource TitleLargeLabelStyle}" />
+        <!-- Topo -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
+            <Button Text="←"
+                    BackgroundColor="Transparent"
+                    Clicked="OnBackClicked"
+                    WidthRequest="44"
+                    HeightRequest="44"/>
+
+            <Label Grid.Column="1"
+                   x:Name="TitleLabel"
+                   Style="{StaticResource TitleLargeLabelStyle}"
+                   LineBreakMode="TailTruncation"/>
         </Grid>
 
+        <!-- Poster -->
         <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="0">
-            <Image x:Name="CoverImage" Aspect="AspectFill" HeightRequest="200"/>
+            <Grid>
+                <Image x:Name="CoverImage"
+                       Aspect="AspectFill"
+                       HeightRequest="220"/>
+
+                <!-- VIP badge -->
+                <Border x:Name="VipBadge"
+                        IsVisible="False"
+                        StrokeThickness="0"
+                        Padding="10,6"
+                        Margin="12"
+                        HorizontalOptions="End"
+                        VerticalOptions="Start">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="14"/>
+                    </Border.StrokeShape>
+                    <Border.Background>
+                        <AppThemeBinding Light="#CCEC4899" Dark="#CCEC4899"/>
+                    </Border.Background>
+                    <Label Text="VIP"
+                           FontAttributes="Bold"
+                           FontSize="12"
+                           TextColor="White"/>
+                </Border>
+
+                <!-- overlay gradiente + subtitle -->
+                <Grid VerticalOptions="End" Padding="14">
+                    <Grid.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Offset="0" Color="#00000000"/>
+                            <GradientStop Offset="1" Color="#88000000"/>
+                        </LinearGradientBrush>
+                    </Grid.Background>
+
+                    <Label x:Name="SubtitleLabel"
+                           Text=""
+                           FontSize="12"
+                           TextColor="White"
+                           LineBreakMode="TailTruncation"/>
+                </Grid>
+            </Grid>
         </Border>
 
-        <CollectionView Grid.Row="2"
+        <!-- Ações (um card só, 5 colunas: ação / divisor / ação / divisor / ação) -->
+        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" Padding="0">
+            <Grid ColumnDefinitions="*,1,*,1,*" ColumnSpacing="0">
+
+                <!-- Curtir -->
+                <Grid Grid.Column="0" Padding="14">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLikeClicked"/>
+                    </Grid.GestureRecognizers>
+                    <VerticalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label x:Name="LikeIcon" Text="♡" FontSize="18" HorizontalTextAlignment="Center"/>
+                        <Label x:Name="LikeText" Text="Curtir" FontAttributes="Bold" FontSize="12"
+                               TextColor="{StaticResource AppMutedTextColor}"/>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- divisor -->
+                <BoxView Grid.Column="1"
+                         WidthRequest="1"
+                         BackgroundColor="{StaticResource LightBorderColor}"
+                         Opacity="0.7"/>
+
+                <!-- Playlist -->
+                <Grid Grid.Column="2" Padding="14">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPlaylistClicked"/>
+                    </Grid.GestureRecognizers>
+                    <VerticalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label x:Name="PlaylistIcon" Text="＋" FontSize="18" HorizontalTextAlignment="Center"/>
+                        <Label x:Name="PlaylistText" Text="Playlist" FontAttributes="Bold" FontSize="12"
+                               TextColor="{StaticResource AppMutedTextColor}"/>
+                    </VerticalStackLayout>
+                </Grid>
+
+                <!-- divisor -->
+                <BoxView Grid.Column="3"
+                         WidthRequest="1"
+                         BackgroundColor="{StaticResource LightBorderColor}"
+                         Opacity="0.7"/>
+
+                <!-- Compartilhar -->
+                <Grid Grid.Column="4" Padding="14">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnShareClicked"/>
+                    </Grid.GestureRecognizers>
+                    <VerticalStackLayout Spacing="4" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="⤴" FontSize="18" HorizontalTextAlignment="Center"/>
+                        <Label Text="Compartilhar" FontAttributes="Bold" FontSize="12"
+                               TextColor="{StaticResource AppMutedTextColor}"/>
+                    </VerticalStackLayout>
+                </Grid>
+
+            </Grid>
+        </Border>
+
+        <!-- Episódios -->
+        <CollectionView Grid.Row="3"
                         x:Name="EpisodesList"
                         SelectionMode="Single"
                         SelectionChanged="OnEpisodeSelected">
+
+            <CollectionView.EmptyView>
+                <Border Style="{StaticResource CardBorderStyle}" Padding="14">
+                    <Label Text="Sem episódios ainda."
+                           Style="{StaticResource MutedLabelStyle}"/>
+                </Border>
+            </CollectionView.EmptyView>
+
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
+                    <Border Style="{StaticResource CardBorderStyle}"
+                            Padding="12"
+                            Margin="0,0,0,12">
                         <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+
                             <Border StrokeThickness="0" Padding="10,6">
                                 <Border.StrokeShape>
                                     <RoundRectangle CornerRadius="14"/>
@@ -43,14 +162,18 @@
 
                             <VerticalStackLayout Grid.Column="1" Spacing="4">
                                 <Label Text="{Binding Title}" FontAttributes="Bold"/>
-                                <Label Text="{Binding VideoUrl}" FontSize="11"
+                                <Label Text="{Binding VideoUrl}"
+                                       FontSize="11"
                                        LineBreakMode="TailTruncation"
                                        TextColor="{StaticResource AppMutedTextColor}"/>
                             </VerticalStackLayout>
+
                         </Grid>
                     </Border>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
+
         </CollectionView>
+
     </Grid>
 </ContentPage>

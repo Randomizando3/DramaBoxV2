@@ -14,4 +14,8 @@ public sealed class DramaSeries
     public bool IsVip { get; set; } = false;          // trava (premium)
     public int TopRank { get; set; } = 0;             // Top 10 (1..10)
     public long UpdatedAtUnix { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+    // ====== UI STATE (não precisa ir pro Firebase) ======
+    public bool UiLiked { get; set; }
+    public bool UiInPlaylist { get; set; }
 }

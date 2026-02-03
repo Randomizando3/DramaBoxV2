@@ -19,49 +19,148 @@
                    Style="{StaticResource TitleLargeLabelStyle}" />
 
             <Button Grid.Column="1"
-                    Text="⚙"
+                    Text="⟳"
                     BackgroundColor="Transparent"
                     WidthRequest="44"
                     HeightRequest="44"
-                    CornerRadius="14" />
+                    CornerRadius="14"
+                    Clicked="OnRefreshClicked"/>
         </Grid>
 
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Spacing="14">
 
+                <!-- CONTINUAR -->
                 <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="8">
+                    <VerticalStackLayout Spacing="10">
                         <Label Text="Continuar assistindo"
                                Style="{StaticResource TitleMediumLabelStyle}" />
-                        <Label Text="Seus episódios salvos/pausados (mock)."
+                        <Label Text="Episódios pausados/retomáveis."
                                Style="{StaticResource MutedLabelStyle}" />
+
+                        <CollectionView x:Name="ContinueList"
+                                        ItemsSource="{Binding ContinueItems}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,10">
+                                        <Grid ColumnDefinitions="110,*" ColumnSpacing="12">
+
+                                            <Border StrokeThickness="0" Padding="0" HeightRequest="70">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14"/>
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding DramaCoverUrl}"
+                                                       Aspect="AspectFill"
+                                                       HeightRequest="70"
+                                                       WidthRequest="110"/>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                                <Label Text="{Binding DramaTitle}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="14"
+                                                       LineBreakMode="TailTruncation"/>
+
+                                                <Label Text="{Binding EpisodeTitle}"
+                                                       FontSize="12"
+                                                       TextColor="{StaticResource AppMutedTextColor}"
+                                                       LineBreakMode="TailTruncation"/>
+
+                                                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                                    <Label Text="{Binding EpisodeNumber, StringFormat='Ep. {0}'}"
+                                                           FontSize="12"
+                                                           TextColor="{StaticResource AppMutedTextColor}" />
+
+                                                    <Button Grid.Column="1"
+                                                            Text="▶"
+                                                            BackgroundColor="Transparent"
+                                                            Clicked="OnContinuePlayClicked"/>
+                                                </Grid>
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Label x:Name="ContinueEmpty"
+                               Text="Nada para retomar ainda."
+                               IsVisible="False"
+                               Style="{StaticResource MutedLabelStyle}"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,6,0,0"/>
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- SALVOS -->
                 <Border Style="{StaticResource CardBorderStyle}">
                     <VerticalStackLayout Spacing="10">
                         <Label Text="Salvos"
                                Style="{StaticResource TitleMediumLabelStyle}" />
+                        <Label Text="Séries que você adicionou na playlist."
+                               Style="{StaticResource MutedLabelStyle}" />
 
-                        <Border Style="{StaticResource CardBorderStyle}">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                                <BoxView WidthRequest="54" HeightRequest="54" CornerRadius="14" Opacity="0.15" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Série salva 1" FontAttributes="Bold" />
-                                    <Label Text="3 eps salvos" Style="{StaticResource MutedLabelStyle}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
+                        <CollectionView x:Name="SavedList"
+                                        ItemsSource="{Binding SavedItems}"
+                                        SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,10">
+                                        <Grid ColumnDefinitions="110,*" ColumnSpacing="12">
 
-                        <Border Style="{StaticResource CardBorderStyle}">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                                <BoxView WidthRequest="54" HeightRequest="54" CornerRadius="14" Opacity="0.15" />
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="Série salva 2" FontAttributes="Bold" />
-                                    <Label Text="1 ep salvo" Style="{StaticResource MutedLabelStyle}" />
-                                </VerticalStackLayout>
-                            </Grid>
-                        </Border>
+                                            <Border StrokeThickness="0" Padding="0" HeightRequest="70">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14"/>
+                                                </Border.StrokeShape>
+                                                <Image Source="{Binding CoverUrl}"
+                                                       Aspect="AspectFill"
+                                                       HeightRequest="70"
+                                                       WidthRequest="110"/>
+                                            </Border>
+
+                                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                                <Label Text="{Binding Title}"
+                                                       FontAttributes="Bold"
+                                                       FontSize="14"
+                                                       LineBreakMode="TailTruncation"/>
+
+                                                <Label Text="{Binding Subtitle}"
+                                                       FontSize="12"
+                                                       TextColor="{StaticResource AppMutedTextColor}"
+                                                       LineBreakMode="TailTruncation"/>
+
+                                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0" ColumnSpacing="8">
+                                                    <Button Text="Abrir"
+                                                            BackgroundColor="Transparent"
+                                                            Clicked="OnOpenSavedClicked"/>
+
+                                                    <Button Grid.Column="1"
+                                                            Text="Remover"
+                                                            BackgroundColor="Transparent"
+                                                            TextColor="{StaticResource AppMutedTextColor}"
+                                                            Clicked="OnRemoveSavedClicked"/>
+
+                                                    <Label Grid.Column="2"
+                                                           Text="★"
+                                                           TextColor="{StaticResource AppMutedTextColor}"
+                                                           VerticalTextAlignment="Center"/>
+                                                </Grid>
+                                            </VerticalStackLayout>
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Label x:Name="SavedEmpty"
+                               Text="Nenhum drama salvo ainda."
+                               IsVisible="False"
+                               Style="{StaticResource MutedLabelStyle}"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,6,0,0"/>
                     </VerticalStackLayout>
                 </Border>
 
