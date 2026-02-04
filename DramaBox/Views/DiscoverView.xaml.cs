@@ -19,6 +19,9 @@ public partial class DiscoverView : ContentPage
     private readonly ObservableCollection<DramaSeries> _feed = new();
     private readonly ObservableCollection<string> _categories = new();
 
+    // ? usado pelo XAML do Hero (Carousel)
+    public ObservableCollection<HeroItem> FeaturedItems { get; } = new();
+
     private string _selectedCategory = "Novidades";
 
     public DiscoverView()
@@ -28,12 +31,17 @@ public partial class DiscoverView : ContentPage
         _session = Resolve<SessionService>() ?? new SessionService();
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
 
-        FeaturedCarousel.ItemsSource = _featured;
+        // Top + Feed continuam usando as mesmas fontes
         TopRow.ItemsSource = _top10;
         FeedList.ItemsSource = _feed;
+
+        // CategoryRow ficou invisível, mas mantive compatibilidade
         CategoryRow.ItemsSource = _categories;
 
         EnsureDefaultCategories();
+
+        // BindingContext por último (pra garantir que FeaturedItems existe)
+        BindingContext = this;
     }
 
     private static T? Resolve<T>() where T : class
@@ -58,21 +66,37 @@ public partial class DiscoverView : ContentPage
     {
         try
         {
-            // ? Busca em /catalog/dramas
             var list = await _db.GetAllDramasAsync(_session.IdToken);
 
             _all.Clear();
             foreach (var it in list)
                 _all.Add(it);
 
-            // Featured
+            // Featured source
             _featured.Clear();
             foreach (var f in _all.Where(x => x.IsFeatured).Take(12))
                 _featured.Add(f);
 
+            // ? monta HeroItems (texto igual do print)
+            FeaturedItems.Clear();
+            foreach (var f in _featured.Take(8))
+            {
+                FeaturedItems.Add(new HeroItem
+                {
+                    Drama = f,
+                    Title = f.Title ?? "Drama",
+                    EpisodesText = BuildEpisodesText(f),
+                    DurationText = BuildDurationText(f),
+                    AgeText = BuildAgeText(f),
+                    CoverUrl = f.CoverUrl ?? ""
+                });
+            }
+
             // Top 10
             _top10.Clear();
-            foreach (var t in _all.OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank).Take(10))
+            foreach (var t in _all
+                         .OrderBy(x => x.TopRank == 0 ? int.MaxValue : x.TopRank)
+                         .Take(10))
                 _top10.Add(t);
 
             // Atualiza feed
@@ -81,6 +105,7 @@ public partial class DiscoverView : ContentPage
         catch
         {
             _featured.Clear();
+            FeaturedItems.Clear();
             _top10.Clear();
             _feed.Clear();
         }
@@ -123,7 +148,7 @@ public partial class DiscoverView : ContentPage
     }
 
     // =========================
-    // EVENTS
+    // EVENTS (mantidos)
     // =========================
 
     private void OnSearchTextChanged(object sender, TextChangedEventArgs e)
@@ -132,6 +157,7 @@ public partial class DiscoverView : ContentPage
     private async void OnVipClicked(object sender, EventArgs e)
         => await Shell.Current.GoToAsync("upgrade");
 
+    // Mantido (mesmo que CategoryRow esteja oculto por enquanto)
     private void OnCategorySelected(object sender, SelectionChangedEventArgs e)
     {
         var cat = e.CurrentSelection?.FirstOrDefault() as string;
@@ -140,10 +166,22 @@ public partial class DiscoverView : ContentPage
 
         _selectedCategory = cat;
         ApplyFilters(SearchEntry?.Text);
-
-        // limpa seleção pra poder clicar de novo no mesmo chip
         CategoryRow.SelectedItem = null;
     }
+
+    // ? chips agora são botões (Drama/Suspense/Fantasia)
+    private void OnChipClicked(object sender, EventArgs e)
+    {
+        if (sender is Button b && !string.IsNullOrWhiteSpace(b.Text))
+        {
+            _selectedCategory = b.Text.Trim();
+            ApplyFilters(SearchEntry?.Text);
+        }
+    }
+
+    // ? botão do presente (por enquanto só placeholder)
+    private async void OnRewardsClicked(object sender, EventArgs e)
+        => await DisplayAlert("Recompensas", "Em breve.", "OK");
 
     private async Task OpenDramaAsync(DramaSeries? drama)
     {
@@ -152,15 +190,30 @@ public partial class DiscoverView : ContentPage
         var id = drama.Id ?? "";
         if (string.IsNullOrWhiteSpace(id)) return;
 
-        // sua tela de detalhes está esperando ID (padrão que você já está usando)
         await Navigation.PushAsync(new DramaDetailsPage(id));
     }
 
+    // Mantido (não usado no Hero atual, mas não removi)
     private async void OnFeaturedSelected(object sender, SelectionChangedEventArgs e)
     {
         var drama = e.CurrentSelection?.FirstOrDefault() as DramaSeries;
-        FeaturedCarousel.SelectedItem = null;
+        if (sender is CollectionView cv) cv.SelectedItem = null;
         await OpenDramaAsync(drama);
+    }
+
+    // ? novo handler do Carousel do Hero
+    private void OnFeaturedCurrentItemChanged(object sender, CurrentItemChangedEventArgs e)
+    {
+        // não abre ao trocar (igual TikTok, só navega por swipe)
+        // se quiser abrir ao tocar: use OnHeroPlayClicked
+    }
+
+    // ? “Assistir” no Hero
+    private async void OnHeroPlayClicked(object sender, EventArgs e)
+    {
+        var hero = FeaturedCarousel?.CurrentItem as HeroItem;
+        if (hero?.Drama == null) return;
+        await OpenDramaAsync(hero.Drama);
     }
 
     private async void OnTopSelected(object sender, SelectionChangedEventArgs e)
@@ -181,5 +234,40 @@ public partial class DiscoverView : ContentPage
         => await Navigation.PushAsync(new SeriesListPage(_selectedCategory, _selectedCategory, _all.ToList()));
 
     private async void OnSeeAllTopClicked(object sender, EventArgs e)
-        => await Navigation.PushAsync(new SeriesListPage("Top Séries", "__TOP__", _all.ToList()));
+        => await Navigation.PushAsync(new SeriesListPage("Em destaque", "__TOP__", _all.ToList()));
+
+    // =========================
+    // Helpers do HERO (textos)
+    // =========================
+
+    private static string BuildEpisodesText(DramaSeries s)
+    {
+        // Se você tiver EpisodesCount no model, troca aqui.
+        // Fallback: "— episódios"
+        return "— episódios";
+    }
+
+    private static string BuildDurationText(DramaSeries s)
+    {
+        // Se tiver duração no model, troca aqui.
+        return "2–5 min";
+    }
+
+    private static string BuildAgeText(DramaSeries s)
+    {
+        // Se tiver age rating no model, troca aqui.
+        return "12+";
+    }
+
+    // DTO do Hero (pra ficar igual ao print)
+    public sealed class HeroItem
+    {
+        public DramaSeries? Drama { get; set; }
+        public string Title { get; set; } = "";
+        public string CoverUrl { get; set; } = "";
+
+        public string EpisodesText { get; set; } = "";
+        public string DurationText { get; set; } = "";
+        public string AgeText { get; set; } = "";
+    }
 }

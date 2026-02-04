@@ -5,59 +5,90 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
-    NavigationPage.HasBackButton="False">
+    NavigationPage.HasBackButton="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
 
-    <Grid Padding="18" RowSpacing="14">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <Color x:Key="TextLight">#0F172A</Color>
+            <Color x:Key="TextDark">#E5E7EB</Color>
+            <Color x:Key="MutedLight">#64748B</Color>
+            <Color x:Key="MutedDark">#9CA3AF</Color>
+            <Color x:Key="BorderLight">#E2E8F0</Color>
+            <Color x:Key="BorderDark">#1F2937</Color>
 
-        <!-- Topo -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
-            <Label Text="Perfil"
-                   Style="{StaticResource TitleLargeLabelStyle}" />
+            <Style x:Key="H1" TargetType="Label">
+                <Setter Property="FontSize" Value="20"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+            </Style>
 
-            <Button Grid.Column="1"
-                    Text="⚙"
-                    BackgroundColor="Transparent"
-                    WidthRequest="44"
-                    HeightRequest="44"
-                    CornerRadius="14" />
+            <Style x:Key="Muted" TargetType="Label">
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"/>
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- TOPBAR (igual ao mock) -->
+        <Grid Grid.Row="0"
+              Padding="12,12,12,10"
+              ColumnDefinitions="*,Auto"
+              BackgroundColor="{AppThemeBinding Light=#EFEFEF, Dark=#0F172ACC}">
+
+            <Label Text="Perfil" Style="{StaticResource H1}" />
+
+            <!-- se quiser remover a engrenagem: apague esse Frame -->
+            
         </Grid>
 
+        <!-- CONTENT -->
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="14">
+            <VerticalStackLayout Spacing="12" Padding="12,10,12,110">
 
-                <!-- Card Perfil -->
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="12">
+                <!-- CARD PERFIL -->
+                <Border Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
 
-                        <!-- Foto + Nome + Plano -->
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" VerticalOptions="Center">
+                    <Grid Padding="14" RowDefinitions="Auto,Auto,Auto" RowSpacing="10">
 
-                            <!-- Avatar -->
+                        <!-- Badge Premium (top-left) -->
+                        <Border x:Name="PremiumBadge"
+                                IsVisible="False"
+                                Padding="10,6"
+                                BackgroundColor="#EEF2FF"
+                                Stroke="#E2E8F0"
+                                StrokeThickness="1"
+                                HorizontalOptions="Start">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="999"/>
+                            </Border.StrokeShape>
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="☆" FontAttributes="Bold" TextColor="#1D4ED8" />
+                                <Label Text="Premium" FontAttributes="Bold" TextColor="#1D4ED8" FontSize="13"/>
+                            </HorizontalStackLayout>
+                        </Border>
+
+                        <!-- Avatar central -->
+                        <Grid Grid.Row="1" HorizontalOptions="Center" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+
                             <Grid WidthRequest="92" HeightRequest="92">
                                 <Border StrokeThickness="0" WidthRequest="92" HeightRequest="92">
                                     <Border.StrokeShape>
                                         <RoundRectangle CornerRadius="46"/>
                                     </Border.StrokeShape>
 
-                                    <!-- fundo degradê -->
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Offset="0">
-                                                <GradientStop.Color>
-                                                    <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
-                                                                     Dark="{StaticResource DarkPrimaryColor}" />
-                                                </GradientStop.Color>
-                                            </GradientStop>
-                                            <GradientStop Offset="1">
-                                                <GradientStop.Color>
-                                                    <AppThemeBinding Light="{StaticResource LightAccentColor}"
-                                                                     Dark="{StaticResource DarkAccentColor}" />
-                                                </GradientStop.Color>
-                                            </GradientStop>
+                                            <GradientStop Color="#7a5cff" Offset="0"/>
+                                            <GradientStop Color="#ff4fd8" Offset="1"/>
                                         </LinearGradientBrush>
                                     </Border.Background>
 
@@ -65,111 +96,109 @@
                                         <Image x:Name="ProfileImage"
                                                Aspect="AspectFill"
                                                IsVisible="False"/>
-
                                         <Label x:Name="InitialsLabel"
                                                Text="DL"
                                                TextColor="White"
-                                               FontSize="28"
+                                               FontSize="26"
                                                FontAttributes="Bold"
                                                HorizontalTextAlignment="Center"
-                                               VerticalTextAlignment="Center" />
+                                               VerticalTextAlignment="Center"/>
                                     </Grid>
-                                </Border>
-
-                                <!-- Botão de editar foto -->
-                                <Border
-                                    HorizontalOptions="End"
-                                    VerticalOptions="End"
-                                    Margin="0,0,-6,-6"
-                                    StrokeThickness="0"
-                                    WidthRequest="34"
-                                    HeightRequest="34">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="17"/>
-                                    </Border.StrokeShape>
-                                    <Border.Background>
-                                        <AppThemeBinding Light="{StaticResource LightSurfaceColor}"
-                                                         Dark="{StaticResource DarkSurfaceColor}" />
-                                    </Border.Background>
-
-                                    <Button Text="✎"
-                                            FontSize="14"
-                                            BackgroundColor="Transparent"
-                                            Clicked="OnChangePhotoClicked"/>
                                 </Border>
                             </Grid>
 
-                            <!-- Infos -->
-                            <VerticalStackLayout Spacing="6" VerticalOptions="Center">
-                                <Label x:Name="NameLabel"
-                                       Text="—"
-                                       FontSize="18"
-                                       FontAttributes="Bold" />
+                            <Label x:Name="NameLabel"
+                                   Grid.Row="1"
+                                   Text="—"
+                                   FontSize="18"
+                                   FontAttributes="Bold"
+                                   HorizontalTextAlignment="Center"
+                                   TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
 
-                                <!-- Badge Plano -->
-                                <Border x:Name="PlanBadge"
-                                        StrokeThickness="0"
-                                        Padding="10,6"
-                                        HorizontalOptions="Start">
+                            <Label Grid.Row="2"
+                                   Text="Conta e estatísticas (mock)"
+                                   HorizontalTextAlignment="Center"
+                                   Style="{StaticResource Muted}"/>
+                        </Grid>
+
+                        <!-- Chips stats -->
+                        <VerticalStackLayout Grid.Row="2" Spacing="10">
+
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                <Border BackgroundColor="{AppThemeBinding Light=#F8FAFC, Dark=#0B1220}"
+                                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                                        StrokeThickness="1"
+                                        Padding="10,9">
                                     <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="14"/>
+                                        <RoundRectangle CornerRadius="999"/>
                                     </Border.StrokeShape>
-                                    <Border.Background>
-                                        <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
-                                                         Dark="{StaticResource DarkSurfaceSecondaryColor}" />
-                                    </Border.Background>
-
-                                    <HorizontalStackLayout Spacing="8">
-                                        <Label Text="★"
-                                               FontAttributes="Bold"
-                                               TextColor="{StaticResource AppMutedTextColor}" />
-                                        <Label x:Name="PlanLabel"
-                                               Text="Free"
-                                               FontAttributes="Bold"
+                                    <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                                        <Label Text="❤️" FontSize="13"/>
+                                        <Label x:Name="LikesReceivedLabel"
+                                               Text="0 curtidas"
                                                FontSize="13"
-                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#334155, Dark=#CBD5E1}"/>
                                     </HorizontalStackLayout>
                                 </Border>
 
-                                <Label Text="Conta e estatísticas (mock)"
-                                       Style="{StaticResource MutedLabelStyle}" />
-                            </VerticalStackLayout>
-                        </Grid>
+                                <Border Grid.Column="1"
+                                        BackgroundColor="{AppThemeBinding Light=#F8FAFC, Dark=#0B1220}"
+                                        Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                                        StrokeThickness="1"
+                                        Padding="10,9">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="999"/>
+                                    </Border.StrokeShape>
+                                    <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                                        <Label Text="📌" FontSize="13"/>
+                                        <Label x:Name="SavedLabel"
+                                               Text="0 salvos"
+                                               FontSize="13"
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#334155, Dark=#CBD5E1}"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </Grid>
 
-                        <!-- Stats placeholders (vamos fazer depois) -->
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
-                            <Border Style="{StaticResource CardBorderStyle}" Padding="12">
-                                <Label Text="❤️ curtidas (depois)"
-                                       FontAttributes="Bold"
-                                       FontSize="13"
-                                       HorizontalTextAlignment="Center"/>
+                            <Border BackgroundColor="{AppThemeBinding Light=#F8FAFC, Dark=#0B1220}"
+                                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                                    StrokeThickness="1"
+                                    Padding="10,9">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="999"/>
+                                </Border.StrokeShape>
+                                <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                                    <Label Text="📺" FontSize="13"/>
+                                    <Label x:Name="EpisodesPublishedLabel"
+                                           Text="0 ep publicados"
+                                           FontSize="13"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#334155, Dark=#CBD5E1}"/>
+                                </HorizontalStackLayout>
                             </Border>
 
-                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" Padding="12">
-                                <Label Text="📌 salvos (depois)"
-                                       FontAttributes="Bold"
-                                       FontSize="13"
-                                       HorizontalTextAlignment="Center"/>
-                            </Border>
-                        </Grid>
-
-                        <Border Style="{StaticResource CardBorderStyle}" Padding="12">
-                            <Label Text="episódios publicados (depois)"
-                                   FontAttributes="Bold"
-                                   HorizontalTextAlignment="Center" />
-                        </Border>
-
-                    </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Grid>
                 </Border>
 
-                <!-- Assinatura -->
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <VerticalStackLayout Spacing="8">
-                        <Label Text="Assinatura" Style="{StaticResource TitleMediumLabelStyle}" />
-                        <Label Text="Gerencie seu plano."
-                               Style="{StaticResource MutedLabelStyle}" />
+                <!-- ASSINATURA -->
+                <Border Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
 
-                        <!-- botão com tema (sem depender de AppPrimaryColor) -->
+                    <VerticalStackLayout Spacing="8" Padding="14">
+                        <Label Text="Assinatura"
+                               FontSize="15"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+
+                        <Label Text="Gerencie seu plano e pagamentos."
+                               Style="{StaticResource Muted}"/>
+
                         <Border StrokeThickness="0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14"/>
@@ -177,37 +206,40 @@
 
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Offset="0">
-                                        <GradientStop.Color>
-                                            <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
-                                                             Dark="{StaticResource DarkPrimaryColor}" />
-                                        </GradientStop.Color>
-                                    </GradientStop>
-                                    <GradientStop Offset="1">
-                                        <GradientStop.Color>
-                                            <AppThemeBinding Light="{StaticResource LightAccentColor}"
-                                                             Dark="{StaticResource DarkAccentColor}" />
-                                        </GradientStop.Color>
-                                    </GradientStop>
+                                    <GradientStop Color="#2563EB" Offset="0"/>
+                                    <GradientStop Color="#1D4ED8" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.Background>
 
                             <Button Text="Abrir planos"
-                                    Style="{StaticResource GradientButtonStyle}"
+                                    FontAttributes="Bold"
+                                    FontSize="14"
+                                    TextColor="White"
                                     BackgroundColor="Transparent"
-                                    Clicked="OnOpenUpgradeClicked" />
+                                    Padding="14,12"
+                                    Clicked="OnOpenUpgradeClicked"/>
                         </Border>
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Sair -->
-                <Border Style="{StaticResource CardBorderStyle}">
+                <!-- SAIR -->
+                <Border Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
+
                     <Button Text="Sair"
-                            Style="{StaticResource OutlineButtonStyle}"
+                            FontAttributes="Bold"
+                            BackgroundColor="Transparent"
+                            Padding="14,12"
+                            TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"
                             Clicked="OnLogoutClicked"/>
                 </Border>
 
-                <BoxView HeightRequest="8" Opacity="0" />
+                <BoxView HeightRequest="8" Opacity="0"/>
+
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

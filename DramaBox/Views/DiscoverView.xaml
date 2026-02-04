@@ -5,204 +5,371 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
-    NavigationPage.HasBackButton="False">
+    NavigationPage.HasBackButton="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
 
-    <Grid Padding="18" RowSpacing="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <ContentPage.Resources>
+        <ResourceDictionary>
 
-        <!-- Top Bar -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <Border Style="{StaticResource InputContainerStyle}" Padding="10,6">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
-                    <Label Text="🔎" VerticalTextAlignment="Center" />
-                    <Entry x:Name="SearchEntry"
-                           Grid.Column="1"
-                           Placeholder="Buscar dramas..."
-                           BackgroundColor="Transparent"
-                           TextChanged="OnSearchTextChanged"/>
-                </Grid>
-            </Border>
+            <!-- Paleta / tokens locais (sem estilo global) -->
+            <Color x:Key="BgLight">#F4F6FB</Color>
+            <Color x:Key="BgDark">#0B1220</Color>
 
-            <Border Grid.Column="1" StrokeThickness="0">
+            <Color x:Key="TextLight">#0F172A</Color>
+            <Color x:Key="TextDark">#E5E7EB</Color>
+
+            <Color x:Key="MutedLight">#64748B</Color>
+            <Color x:Key="MutedDark">#9CA3AF</Color>
+
+            <Color x:Key="BorderLight">#E2E8F0</Color>
+            <Color x:Key="BorderDark">#1F2937</Color>
+
+            <Color x:Key="Danger">#EF4444</Color>
+
+            <!-- Chip style -->
+            <Style x:Key="ChipBtn" TargetType="Button">
+                <Setter Property="Padding" Value="12,7" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#E9EEF7, Dark=#111B34}" />
+                <Setter Property="TextColor" Value="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}" />
+                <Setter Property="BorderWidth" Value="0" />
+                <Setter Property="HeightRequest" Value="34" />
+            </Style>
+
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*"
+          BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+        <!-- TOP BAR (sem título e sem engrenagem) -->
+        <Grid Grid.Row="0"
+              Padding="12,12,12,10"
+              ColumnDefinitions="*,Auto,Auto"
+              ColumnSpacing="10"
+              BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+            <!-- Search -->
+            <Border Grid.Column="0"
+                    Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                    Padding="12,10">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="14"/>
                 </Border.StrokeShape>
+
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalOptions="Center">
+                    <Label Text="🔎"
+                           FontSize="16"
+                           TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                           VerticalOptions="Center" />
+                    <Entry Grid.Column="1"
+                           x:Name="SearchEntry"
+                           Placeholder="Pesquisar série, autor ou episódio..."
+                           PlaceholderColor="{AppThemeBinding Light=#9E0F172A, Dark=#B8FFFFFF}"
+                           TextColor="{AppThemeBinding Light=#EB0F172A, Dark=#EBFFFFFF}"
+                           FontAttributes="Bold"
+                           FontSize="13"
+                           BackgroundColor="Transparent"
+                           ReturnType="Search"
+                           TextChanged="OnSearchTextChanged" />
+                </Grid>
+            </Border>
+
+            <!-- Rewards (🎁 + badge) -->
+            <Grid Grid.Column="1" WidthRequest="44" HeightRequest="44">
+                <Border Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                        Padding="0">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="10"/>
+                    </Border.StrokeShape>
+                    <Button Text="🎁"
+                            Padding="-5,0,-5,0"
+                            FontSize="18"
+                            BackgroundColor="Transparent"
+                            TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                            Clicked="OnRewardsClicked"/>
+                </Border>
+
+                <Border HorizontalOptions="End"
+                        VerticalOptions="Start"
+                        TranslationX="6"
+                        TranslationY="-6"
+                        Padding="6,3"
+                        BackgroundColor="{StaticResource Danger}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="999"/>
+                    </Border.StrokeShape>
+                    <Label Text="+30"
+                           FontSize="11"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                </Border>
+            </Grid>
+
+            <!-- VIP -->
+            <Border Grid.Column="2"
+                    HeightRequest="44"
+                    Padding="0">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="10"/>
+                </Border.StrokeShape>
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Offset="0">
-                            <GradientStop.Color>
-                                <AppThemeBinding Light="{StaticResource LightPrimaryColor}"
-                                                 Dark="{StaticResource DarkPrimaryColor}" />
-                            </GradientStop.Color>
-                        </GradientStop>
-                        <GradientStop Offset="1">
-                            <GradientStop.Color>
-                                <AppThemeBinding Light="{StaticResource LightAccentColor}"
-                                                 Dark="{StaticResource DarkAccentColor}" />
-                            </GradientStop.Color>
-                        </GradientStop>
+                        <GradientStop Color="#F7D77A" Offset="0" />
+                        <GradientStop Color="#F2B84F" Offset="1" />
                     </LinearGradientBrush>
                 </Border.Background>
-
                 <Button Text="VIP"
+                        FontAttributes="Bold"
+                        FontSize="14"
+                        TextColor="#3A2A00"
                         BackgroundColor="Transparent"
-                        Style="{StaticResource GradientButtonStyle}"
-                        HeightRequest="48"
-                        Clicked="OnVipClicked"/>
+                        Padding="14,0"
+                        Clicked="OnVipClicked" />
             </Border>
         </Grid>
 
+        <!-- CONTENT -->
         <ScrollView Grid.Row="1">
-            <VerticalStackLayout Spacing="14">
+            <!-- padding bottom alto pra não bater na tabbar -->
+            <VerticalStackLayout Spacing="12" Padding="12,10,12,110">
 
-                <!-- Featured slider -->
-                <CollectionView x:Name="FeaturedCarousel"
-                                ItemsLayout="HorizontalList"
-                                HeightRequest="190"
-                                SelectionMode="Single"
-                                SelectionChanged="OnFeaturedSelected">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Grid WidthRequest="320" Margin="0,0,12,0">
-                                <Border Style="{StaticResource CardBorderStyle}" Padding="0">
-                                    <Grid>
-                                        <Image Source="{Binding CoverUrl}"
-                                               Aspect="AspectFill"
-                                               HeightRequest="190"/>
+                <!-- HERO (Carousel estilo print) -->
+                <Grid>
+                    <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                            StrokeThickness="1"
+                            BackgroundColor="#0B1220">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12"/>
+                        </Border.StrokeShape>
 
-                                        <Grid Padding="14" VerticalOptions="End">
-                                            <Border StrokeThickness="0" Padding="10,8" HorizontalOptions="Start">
-                                                <Border.StrokeShape>
-                                                    <RoundRectangle CornerRadius="14"/>
-                                                </Border.StrokeShape>
-                                                <Border.Background>
-                                                    <AppThemeBinding Light="#CCFFFFFF" Dark="#CC0F172A"/>
-                                                </Border.Background>
-                                                <VerticalStackLayout Spacing="2">
-                                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14"
-                                                           TextColor="{StaticResource AppTextColor}"/>
-                                                    <Label Text="{Binding Subtitle}" FontSize="12"
-                                                           TextColor="{StaticResource AppMutedTextColor}"/>
-                                                </VerticalStackLayout>
-                                            </Border>
+                        <Grid>
+                            <!-- Troquei FeaturedCarousel para CarouselView, mantendo o x:Name -->
+                            <CarouselView x:Name="FeaturedCarousel"
+                                          HeightRequest="245"
+                                          ItemsSource="{Binding FeaturedItems}"
+                                          IndicatorView="HeroIndicator"
+                                          PeekAreaInsets="0"
+                                          IsBounceEnabled="False"
+                                          IsScrollAnimated="False"
+                                          HorizontalScrollBarVisibility="Never"
+                                          CurrentItemChanged="OnFeaturedCurrentItemChanged">
+
+                                <CarouselView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid HeightRequest="245">
+                                            <Image Source="{Binding CoverUrl}" Aspect="AspectFill"/>
+
+                                            <BoxView>
+                                                <BoxView.Background>
+                                                    <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                                        <GradientStop Color="#D1000000" Offset="0" />
+                                                        <GradientStop Color="#14000000" Offset="0.58" />
+                                                        <GradientStop Color="#2E000000" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </BoxView.Background>
+                                            </BoxView>
+
+                                            <Grid Padding="14" RowDefinitions="Auto,Auto,Auto,Auto" VerticalOptions="End">
+                                                <Label Text="Destaque • Drama"
+                                                       FontSize="12"
+                                                       FontAttributes="Bold"
+                                                       TextColor="White"
+                                                       Opacity="0.92"/>
+
+                                                <Label Grid.Row="1"
+                                                       Text="{Binding Title}"
+                                                       FontSize="17"
+                                                       FontAttributes="Bold"
+                                                       TextColor="White"
+                                                       Margin="0,4,0,0"/>
+
+                                                <HorizontalStackLayout Grid.Row="2" Spacing="10" Margin="0,6,0,0">
+                                                    <Label Text="{Binding EpisodesText}" FontSize="12" FontAttributes="Bold" TextColor="White" Opacity="0.9"/>
+                                                    <Label Text="{Binding DurationText}"  FontSize="12" FontAttributes="Bold" TextColor="White" Opacity="0.9"/>
+                                                    <Label Text="{Binding AgeText}"       FontSize="12" FontAttributes="Bold" TextColor="White" Opacity="0.9"/>
+                                                </HorizontalStackLayout>
+
+                                                <Button Grid.Row="3"
+                                                        Text="▶  Assistir"
+                                                        Margin="0,10,0,0"
+                                                        BackgroundColor="White"
+                                                        TextColor="#111827"
+                                                        FontAttributes="Bold"
+                                                        CornerRadius="10"
+                                                        Padding="12,10"
+                                                        Clicked="OnHeroPlayClicked"/>
+                                            </Grid>
                                         </Grid>
-                                    </Grid>
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                                    </DataTemplate>
+                                </CarouselView.ItemTemplate>
+                            </CarouselView>
+                        </Grid>
+                    </Border>
 
-                <!-- Categories chips -->
-                <CollectionView x:Name="CategoryRow"
-                                ItemsLayout="HorizontalList"
-                                SelectionMode="Single"
-                                SelectionChanged="OnCategorySelected">
-                    <CollectionView.ItemTemplate>
-                        <DataTemplate>
-                            <Border Padding="12,8" Margin="0,0,10,0" StrokeThickness="1"
-                                    Stroke="{StaticResource LightBorderColor}">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14"/>
-                                </Border.StrokeShape>
-                                <Label Text="{Binding .}" FontAttributes="Bold" FontSize="12"
-                                       TextColor="{StaticResource AppMutedTextColor}"/>
-                            </Border>
-                        </DataTemplate>
-                    </CollectionView.ItemTemplate>
-                </CollectionView>
+                    <IndicatorView x:Name="HeroIndicator"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="End"
+                                   Margin="0,0,0,-10"
+                                   IndicatorColor="#5964748B"
+                                   SelectedIndicatorColor="#A62563EB"/>
+                </Grid>
 
-                <!-- Top 10 -->
-                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                    <Label Text="Top Séries" Style="{StaticResource TitleMediumLabelStyle}"/>
+                <!-- Chips -->
+                <HorizontalStackLayout Spacing="8" Margin="0,10,0,0">
+                    <Button Text="Drama" Style="{StaticResource ChipBtn}" Clicked="OnChipClicked"/>
+                    <Button Text="Suspense" Style="{StaticResource ChipBtn}" Clicked="OnChipClicked"/>
+                    <Button Text="Fantasia" Style="{StaticResource ChipBtn}" Clicked="OnChipClicked"/>
+                </HorizontalStackLayout>
+
+                <!-- TOP 10 -->
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" Margin="0,6,0,0">
+                    <Label Text="Em destaque"
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
                     <Button Grid.Column="1"
                             Text="Ver tudo"
                             BackgroundColor="Transparent"
-                            TextColor="{StaticResource AppMutedTextColor}"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"
                             Clicked="OnSeeAllTopClicked"/>
                 </Grid>
 
                 <CollectionView x:Name="TopRow"
                                 ItemsLayout="HorizontalList"
                                 SelectionMode="Single"
-                                SelectionChanged="OnTopSelected">
+                                SelectionChanged="OnTopSelected"
+                                HorizontalScrollBarVisibility="Never">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Grid WidthRequest="120" Margin="0,0,12,0">
-                                <Border Style="{StaticResource CardBorderStyle}" Padding="0">
-                                    <Grid>
-                                        <Image Source="{Binding CoverUrl}"
-                                               Aspect="AspectFill"
-                                               HeightRequest="160"/>
+                            <Grid WidthRequest="170" HeightRequest="200" Margin="0,0,12,0">
+                                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="#0B1220">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
 
-                                        <Border StrokeThickness="0"
-                                                Padding="8,6"
-                                                Margin="10"
+                                    <Grid>
+                                        <Image Source="{Binding CoverUrl}" Aspect="AspectFill"/>
+
+                                        <BoxView>
+                                            <BoxView.Background>
+                                                <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                                    <GradientStop Color="#BD000000" Offset="0"/>
+                                                    <GradientStop Color="#00000000" Offset="0.58"/>
+                                                </LinearGradientBrush>
+                                            </BoxView.Background>
+                                        </BoxView>
+
+                                        <!-- número do rank (gigante suave) -->
+                                        <Label Text="{Binding TopRank}"
+                                               FontSize="104"
+                                               FontAttributes="Bold"
+                                               TextColor="#38FFFFFF"
+                                               Margin="10,0,0,0"
+                                               VerticalOptions="End"
+                                               LineHeight="0.9"/>
+
+                                        <!-- VIP badge -->
+                                        <Border IsVisible="{Binding IsVip}"
+                                                BackgroundColor="#EC4899"
+                                                Padding="8,5"
                                                 HorizontalOptions="Start"
-                                                VerticalOptions="Start">
+                                                VerticalOptions="Start"
+                                                Margin="8">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="14"/>
+                                                <RoundRectangle CornerRadius="9"/>
                                             </Border.StrokeShape>
-                                            <Border.Background>
-                                                <AppThemeBinding Light="#CCFFFFFF" Dark="#CC0F172A"/>
-                                            </Border.Background>
-                                            <Label Text="{Binding TopRank}" FontAttributes="Bold"/>
+                                            <Label Text="VIP"
+                                                   FontSize="11"
+                                                   FontAttributes="Bold"
+                                                   TextColor="White"/>
                                         </Border>
 
-                                        <Border StrokeThickness="0"
-                                                Padding="8,6"
-                                                Margin="10"
-                                                HorizontalOptions="End"
-                                                VerticalOptions="Start"
-                                                IsVisible="{Binding IsVip}">
+                                        <!-- overlay bottom -->
+                                        <Border VerticalOptions="End"
+                                                Padding="10,9"
+                                                BackgroundColor="#1AFFFFFF"
+                                                Stroke="#26FFFFFF"
+                                                StrokeThickness="1"
+                                                Margin="10">
                                             <Border.StrokeShape>
-                                                <RoundRectangle CornerRadius="14"/>
+                                                <RoundRectangle CornerRadius="10"/>
                                             </Border.StrokeShape>
-                                            <Border.Background>
-                                                <AppThemeBinding Light="#CCEC4899" Dark="#CCEC4899"/>
-                                            </Border.Background>
-                                            <Label Text="VIP" TextColor="White" FontAttributes="Bold" FontSize="11"/>
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label Text="{Binding Title}"
+                                                       FontSize="12"
+                                                       TextColor="#FFFFFFF2"
+                                                       LineBreakMode="TailTruncation"/>
+                                                <Label Text="{Binding Subtitle}"
+                                                       FontSize="11"
+                                                       TextColor="#FFFFFFC7"
+                                                       LineBreakMode="TailTruncation"/>
+                                            </VerticalStackLayout>
                                         </Border>
                                     </Grid>
                                 </Border>
-
-                                <Label Text="{Binding Title}"
-                                       LineBreakMode="TailTruncation"
-                                       FontAttributes="Bold"
-                                       FontSize="12"
-                                       Margin="6,8,6,0"/>
                             </Grid>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
 
-                <!-- Feed (categoria atual) -->
-                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                <!-- FEED -->
+                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" Margin="0,6,0,0">
                     <Label x:Name="FeedTitle"
                            Text="Novidades"
-                           Style="{StaticResource TitleMediumLabelStyle}"/>
+                           FontSize="15"
+                           FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
                     <Button Grid.Column="1"
                             Text="Ver tudo"
                             BackgroundColor="Transparent"
-                            TextColor="{StaticResource AppMutedTextColor}"
+                            FontSize="12"
+                            FontAttributes="Bold"
+                            TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"
                             Clicked="OnSeeAllCategoryClicked"/>
                 </Grid>
 
                 <CollectionView x:Name="FeedList"
                                 SelectionMode="Single"
-                                SelectionChanged="OnFeedSelected">
+                                SelectionChanged="OnFeedSelected"
+                                VerticalOptions="Fill"
+                                HorizontalScrollBarVisibility="Never">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
+                            <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{AppThemeBinding Light=White, Dark=#0F172A}"
+                                    Padding="12"
+                                    Margin="0,0,0,12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+
                                 <Grid ColumnDefinitions="110,*" ColumnSpacing="12">
-                                    <Image Source="{Binding CoverUrl}" Aspect="AspectFill" HeightRequest="80" WidthRequest="110"/>
+                                    <Border StrokeThickness="0" Padding="0" HeightRequest="80">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="12"/>
+                                        </Border.StrokeShape>
+                                        <Image Source="{Binding CoverUrl}" Aspect="AspectFill" HeightRequest="80" WidthRequest="110"/>
+                                    </Border>
+
                                     <VerticalStackLayout Grid.Column="1" Spacing="6">
-                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14"/>
-                                        <Label Text="{Binding Subtitle}" Style="{StaticResource MutedLabelStyle}"/>
-                                        <Label Text="{Binding Categories[0]}" FontSize="12" TextColor="{StaticResource AppMutedTextColor}"/>
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14"
+                                               TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
+                                        <Label Text="{Binding Subtitle}" FontSize="12"
+                                               TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+                                        <Label Text="{Binding Categories[0]}" FontSize="12"
+                                               TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>
@@ -213,5 +380,10 @@
                 <BoxView HeightRequest="24" Opacity="0"/>
             </VerticalStackLayout>
         </ScrollView>
+
+        <!-- Mantido só pra compatibilidade: seu code usa CategoryRow, mas agora os chips são botões.
+             Se você quiser, eu removo depois e ajusto o code-behind. -->
+        <CollectionView x:Name="CategoryRow" IsVisible="False" />
+
     </Grid>
 </ContentPage>

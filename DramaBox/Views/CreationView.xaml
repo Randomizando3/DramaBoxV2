@@ -5,142 +5,361 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
-    NavigationPage.HasBackButton="False">
+    NavigationPage.HasBackButton="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
 
-    <Grid Padding="18" RowSpacing="14">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <Grid RowDefinitions="Auto,*"
+          BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
 
-        <!-- Topo -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
-            <Label Text="Área do Criador"
-                   Style="{StaticResource TitleLargeLabelStyle}" />
+        <!-- (Topo removido como você pediu) -->
+        <Grid Grid.Row="0" HeightRequest="6" />
 
-            <Button Grid.Column="1"
-                    Text="⟳"
-                    BackgroundColor="Transparent"
-                    WidthRequest="44"
-                    HeightRequest="44"
-                    CornerRadius="14"
-                    Clicked="OnRefreshClicked"/>
-        </Grid>
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="12" Padding="12,10,12,110">
 
-        <!-- Dashboard -->
-        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}">
-            <VerticalStackLayout Spacing="10">
+                <!-- DASHBOARD CARD -->
+                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
 
-                <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                    <Label Text="Dashboard"
-                           Style="{StaticResource TitleMediumLabelStyle}" />
+                    <VerticalStackLayout Spacing="10" Padding="14">
 
-                    <Border Grid.Column="1" Style="{StaticResource InputContainerStyle}" Padding="10,6">
-                        <Label Text="Agora" FontAttributes="Bold" FontSize="12" />
-                    </Border>
-                </Grid>
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Dashboard"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
 
-                <Label Text="Resumo do seu desempenho como criador."
-                       Style="{StaticResource MutedLabelStyle}" />
+                                <Label Text="Resumo do seu desempenho como criador."
+                                       FontSize="12.5"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+                            </VerticalStackLayout>
 
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <!--<Border Grid.Column="1"
+                                    BackgroundColor="{AppThemeBinding Light=#F1F5F9, Dark=#111B34}"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    StrokeThickness="1"
+                                    Padding="10,6">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Label Text="Hoje"
+                                       FontSize="12"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light=#334155, Dark=#CBD5E1}"/>
+                            </Border>-->
+                        </Grid>
 
-                    <Border Style="{StaticResource CardBorderStyle}">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Receita" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
-                            <Label x:Name="RevenueLabel" Text="R$ 0,00" FontAttributes="Bold" FontSize="18" />
-                            <Label Text="VIP pode sacar futuramente (MVP)"
-                                   Style="{StaticResource MutedLabelStyle}" FontSize="12" />
-                        </VerticalStackLayout>
-                    </Border>
+                        <!-- MÉTRICAS (3 cards) -->
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
 
-                    <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Curtidas" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
-                            <Label x:Name="LikesLabel" Text="0" FontAttributes="Bold" FontSize="18" />
-                            <Label Text="Total acumulado" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
-                        </VerticalStackLayout>
-                    </Border>
+                            <!-- Receita -->
+                            <Border Grid.Column="0"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B1220}"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    StrokeThickness="1"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
 
-                    <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Shares" Style="{StaticResource MutedLabelStyle}" FontAttributes="Bold" />
-                            <Label x:Name="SharesLabel" Text="0" FontAttributes="Bold" FontSize="18" />
-                            <Label Text="Total acumulado" Style="{StaticResource MutedLabelStyle}" FontSize="12" />
-                        </VerticalStackLayout>
-                    </Border>
+                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                      ColumnDefinitions="*,Auto"
+                                      RowSpacing="6">
 
-                </Grid>
-            </VerticalStackLayout>
-        </Border>
-
-        <!-- Minhas séries -->
-        <Grid Grid.Row="2" RowDefinitions="Auto,*" RowSpacing="12">
-
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                <Label Text="Minhas séries"
-                       Style="{StaticResource TitleMediumLabelStyle}" />
-
-                <Button Grid.Column="1"
-                        Text="+"
-                        WidthRequest="44"
-                        HeightRequest="44"
-                        CornerRadius="14"
-                        BackgroundColor="{StaticResource AppPrimaryColor}"
-                        TextColor="White"
-                        Clicked="OnCreateSeriesClicked"/>
-            </Grid>
-
-            <!-- ✅ agora com seleção -->
-            <CollectionView Grid.Row="1"
-                            x:Name="MySeriesList"
-                            ItemsSource="{Binding MySeries}"
-                            SelectionMode="Single"
-                            SelectionChanged="OnSeriesSelected">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
-                            <Grid ColumnDefinitions="110,*" ColumnSpacing="12">
-
-                                <Border StrokeThickness="0" Padding="0" HeightRequest="70">
-                                    <Border.StrokeShape>
-                                        <RoundRectangle CornerRadius="14"/>
-                                    </Border.StrokeShape>
-                                    <Image Source="{Binding CoverUrl}"
-                                           Aspect="AspectFill"
-                                           HeightRequest="70"
-                                           WidthRequest="110"/>
-                                </Border>
-
-                                <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                    <Label Text="{Binding Title}"
+                                    <Label Text="Total"
+                                           FontSize="12.5"
                                            FontAttributes="Bold"
-                                           FontSize="14"
-                                           LineBreakMode="TailTruncation"/>
+                                           TextColor="{AppThemeBinding Light=#475569, Dark=#AAB3C2}"/>
 
-                                    <Label Text="{Binding Subtitle}"
-                                           FontSize="12"
-                                           TextColor="{StaticResource AppMutedTextColor}"
-                                           LineBreakMode="TailTruncation"/>
-
-                                    <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-                                        <Label Text="{Binding EpisodesText}"
+                                    <Border Grid.Column="1"
+                                            BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}"
+                                            Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                            StrokeThickness="1"
+                                            Padding="8,4">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10"/>
+                                        </Border.StrokeShape>
+                                        <Label Text="R$"
                                                FontSize="12"
-                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#1D4ED8, Dark=#93C5FD}"/>
+                                    </Border>
 
-                                        <Button Grid.Column="1"
-                                                Text="Gerenciar"
-                                                BackgroundColor="Transparent"/>
-                                    </Grid>
-                                </VerticalStackLayout>
+                                    <Label x:Name="RevenueLabel"
+                                           Grid.Row="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="R$ 0,00"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
 
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+                                    <Label Grid.Row="2"
+                                           Grid.ColumnSpan="2"
+                                           Text="Toque para sacar (mín. R$ 50)"
+                                           FontSize="11.5"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+                                </Grid>
 
-        </Grid>
+                                <!-- (opcional) deixar clicável -->
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnRevenueTapped"/>
+                                </Border.GestureRecognizers>
+                            </Border>
+
+                            <!-- Curtidas -->
+                            <Border Grid.Column="1"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B1220}"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    StrokeThickness="1"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+
+                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                      ColumnDefinitions="*,Auto"
+                                      RowSpacing="6">
+
+                                    <Label Text="Likes"
+                                           FontSize="12.5"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#475569, Dark=#AAB3C2}"/>
+
+                                    <Border Grid.Column="1"
+                                            BackgroundColor="{AppThemeBinding Light=#F1F5F9, Dark=#111B34}"
+                                            Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                            StrokeThickness="1"
+                                            Padding="8,4">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10"/>
+                                        </Border.StrokeShape>
+                                        <Label Text="♥"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#2563EB, Dark=#93C5FD}"/>
+                                    </Border>
+
+                                    <Label x:Name="LikesLabel"
+                                           Grid.Row="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="0"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
+
+                                    <Label Grid.Row="2"
+                                           Grid.ColumnSpan="2"
+                                           Text="Total acumulado"
+                                           FontSize="11.5"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+                                </Grid>
+                            </Border>
+
+                            <!-- Shares -->
+                            <Border Grid.Column="2"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B1220}"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    StrokeThickness="1"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+
+                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                      ColumnDefinitions="*,Auto"
+                                      RowSpacing="6">
+
+                                    <Label Text="Shares"
+                                           FontSize="12.5"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#475569, Dark=#AAB3C2}"/>
+
+                                    <Border Grid.Column="1"
+                                            BackgroundColor="{AppThemeBinding Light=#F1F5F9, Dark=#111B34}"
+                                            Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                            StrokeThickness="1"
+                                            Padding="8,4">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10"/>
+                                        </Border.StrokeShape>
+                                        <Label Text="↗"
+                                               FontSize="12"
+                                               FontAttributes="Bold"
+                                               TextColor="{AppThemeBinding Light=#2563EB, Dark=#93C5FD}"/>
+                                    </Border>
+
+                                    <Label x:Name="SharesLabel"
+                                           Grid.Row="1"
+                                           Grid.ColumnSpan="2"
+                                           Text="0"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
+
+                                    <Label Grid.Row="2"
+                                           Grid.ColumnSpan="2"
+                                           Text="Total acumulado"
+                                           FontSize="11.5"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+                                </Grid>
+                            </Border>
+
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- MINHAS SÉRIES (grid 2 colunas) -->
+                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                        StrokeThickness="1"
+                        BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="16"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10" Padding="14">
+
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <Label Text="Minhas séries"
+                                   FontSize="15"
+                                   FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
+
+                            <!-- mantém a função de refresh -->
+                            <Button Grid.Column="1"
+                                    Text="⟳"
+                                    FontSize="15"
+                                    Padding="0,-4,0,0"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{AppThemeBinding Light=#334155, Dark=#CBD5E1}"
+                                    WidthRequest="35"
+                                    HeightRequest="25"
+                                    Clicked="OnRefreshClicked"/>
+                        </Grid>
+
+                        <CollectionView x:Name="MySeriesList"
+                                        ItemsSource="{Binding MySeries}"
+                                        SelectionMode="Single"
+                                        SelectionChanged="OnSeriesSelected">
+
+                            <CollectionView.ItemsLayout>
+                                <GridItemsLayout Orientation="Vertical" Span="2"/>
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.Header>
+                                <!-- Tile "Nova série" -->
+                                <Grid Padding="0,0,0,10">
+                                    <Border Stroke="{AppThemeBinding Light=#CBD5E1, Dark=#334155}"
+                                            StrokeThickness="2"
+                                            BackgroundColor="{AppThemeBinding Light=#F8FAFC, Dark=#0B1220}">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16"/>
+                                        </Border.StrokeShape>
+
+                                        <Grid HeightRequest="170">
+                                            <VerticalStackLayout Spacing="8"
+                                                                 HorizontalOptions="Center"
+                                                                 VerticalOptions="Center">
+                                                <Border BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}"
+                                                        Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                                        StrokeThickness="1"
+                                                        Padding="12">
+                                                    <Border.StrokeShape>
+                                                        <RoundRectangle CornerRadius="14"/>
+                                                    </Border.StrokeShape>
+                                                    <Label Text="+"
+                                                           FontSize="20"
+                                                           FontAttributes="Bold"
+                                                           HorizontalTextAlignment="Center"
+                                                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
+                                                </Border>
+
+                                                <Label Text="Nova série"
+                                                       FontSize="12.5"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+                                            </VerticalStackLayout>
+
+                                            <Grid.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnCreateSeriesTapped"/>
+                                            </Grid.GestureRecognizers>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </CollectionView.Header>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,10,10"
+                                            Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="#0B1220">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16"/>
+                                        </Border.StrokeShape>
+
+                                        <Grid HeightRequest="170">
+
+                                            <!-- imagem (se null/vazia, fica só o fundo) -->
+                                            <Image Source="{Binding CoverUrl}"
+                                                   Aspect="AspectFill"
+                                                   Opacity="1" />
+
+                                            <!-- gradiente -->
+                                            <BoxView>
+                                                <BoxView.Background>
+                                                    <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                                        <GradientStop Color="#B8000000" Offset="0"/>
+                                                        <GradientStop Color="#00000000" Offset="0.62"/>
+                                                    </LinearGradientBrush>
+                                                </BoxView.Background>
+                                            </BoxView>
+
+                                            <!-- label vidro -->
+                                            <Border Margin="10"
+                                                    VerticalOptions="End"
+                                                    Padding="10,9"
+                                                    BackgroundColor="#1AFFFFFF"
+                                                    Stroke="#26FFFFFF"
+                                                    StrokeThickness="1">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="12"/>
+                                                </Border.StrokeShape>
+
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label Text="{Binding Title}"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#FFFFFFF2"
+                                                           LineBreakMode="TailTruncation"/>
+                                                    <Label Text="{Binding EpisodesText}"
+                                                           FontSize="11"
+                                                           FontAttributes="Bold"
+                                                           TextColor="#FFFFFFC7"
+                                                           LineBreakMode="TailTruncation"/>
+                                                </VerticalStackLayout>
+                                            </Border>
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <BoxView HeightRequest="30" Opacity="0"/>
+            </VerticalStackLayout>
+        </ScrollView>
     </Grid>
 </ContentPage>

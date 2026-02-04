@@ -43,14 +43,14 @@
               HorizontalOptions="Start">
             <VerticalStackLayout Spacing="6">
                 <Label Text="{Binding Current.CreatorName}"
-                       TextColor="White"
+                       TextColor="#cccccc"
                        FontAttributes="Bold"
                        FontSize="14" />
                 <Label Text="{Binding Current.DramaTitle}"
-                       TextColor="White"
+                       TextColor="#cccccc"
                        FontSize="13" />
                 <Label Text="{Binding Current.EpisodeTitle}"
-                       TextColor="White"
+                       TextColor="#cccccc"
                        Opacity="0.75"
                        FontSize="12" />
             </VerticalStackLayout>
@@ -66,7 +66,7 @@
                         WidthRequest="52"
                         HeightRequest="52"
                         CornerRadius="26"
-                        BackgroundColor="#1EFFFFFF"
+                        BackgroundColor="#cccccc"
                         TextColor="White"
                         Clicked="OnLikeClicked"/>
 
@@ -74,7 +74,7 @@
                         WidthRequest="52"
                         HeightRequest="52"
                         CornerRadius="26"
-                        BackgroundColor="#1EFFFFFF"
+                        BackgroundColor="#cccccc"
                         TextColor="White"
                         Clicked="OnShareClicked"/>
 
@@ -82,7 +82,7 @@
                         WidthRequest="52"
                         HeightRequest="52"
                         CornerRadius="26"
-                        BackgroundColor="#1EFFFFFF"
+                        BackgroundColor="#cccccc"
                         TextColor="White"
                         Clicked="OnPlaylistClicked"/>
 
@@ -96,8 +96,8 @@
               ColumnDefinitions="Auto,*,Auto">
 
             <Button Text="←"
-                    BackgroundColor="Transparent"
-                    TextColor="White"
+                    BackgroundColor="#cccccc"
+                    TextColor="white"
                     Clicked="OnBackClicked" />
 
             <Label Grid.Column="1"
@@ -109,7 +109,7 @@
 
             <Button Grid.Column="2"
                     Text="⋯"
-                    BackgroundColor="Transparent"
+                    BackgroundColor="#cccccc"
                     TextColor="White" />
         </Grid>
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using DramaBox.Models;
 using DramaBox.Services;
@@ -49,13 +50,21 @@ public partial class CreationView : ContentPage
         {
             var eps = await _db.GetCommunityEpisodesAsync(s.Id, _session.IdToken);
 
+            var cover = string.IsNullOrWhiteSpace(s.CoverUrl) ? (s.PosterUrl ?? "") : s.CoverUrl;
+            if (string.IsNullOrWhiteSpace(cover))
+                cover = null; // ? evita "Path inválido" no Windows
+
+            // texto estilo: "Drama • 8 eps" (se não tiver subtitle, mostra só eps)
+            var sub = (s.Subtitle ?? "").Trim();
+            var epsText = string.IsNullOrWhiteSpace(sub) ? $"{eps.Count} eps" : $"{sub} • {eps.Count} eps";
+
             MySeries.Add(new MySeriesRow
             {
                 SeriesId = s.Id,
                 Title = s.Title ?? "",
-                Subtitle = s.Subtitle ?? "",
-                CoverUrl = string.IsNullOrWhiteSpace(s.CoverUrl) ? (s.PosterUrl ?? "") : s.CoverUrl,
-                EpisodesText = $"{eps.Count} eps"
+                Subtitle = sub,
+                CoverUrl = cover,
+                EpisodesText = epsText
             });
         }
 
@@ -85,7 +94,15 @@ public partial class CreationView : ContentPage
     private async void OnRefreshClicked(object sender, EventArgs e)
         => await LoadAsync();
 
+    // ? Header "Nova série" chama isso (mantém seu fluxo)
+    private async void OnCreateSeriesTapped(object sender, EventArgs e)
+        => await CreateSeriesFlowAsync();
+
+    // (caso você ainda tenha botão + em algum lugar)
     private async void OnCreateSeriesClicked(object sender, EventArgs e)
+        => await CreateSeriesFlowAsync();
+
+    private async Task CreateSeriesFlowAsync()
     {
         var uid = _session.UserId ?? "";
         if (string.IsNullOrWhiteSpace(uid))
@@ -132,12 +149,18 @@ public partial class CreationView : ContentPage
         await Navigation.PushAsync(new CreatorSeriesEditorPage(row.SeriesId));
     }
 
+    // (opcional) clique na receita
+    private async void OnRevenueTapped(object sender, TappedEventArgs e)
+    {
+        await DisplayAlert("Saques", "Saque (MVP): abrir fluxo de saque e validações (mín. R$ 50).", "OK");
+    }
+
     public sealed class MySeriesRow
     {
         public string SeriesId { get; set; } = "";
         public string Title { get; set; } = "";
         public string Subtitle { get; set; } = "";
-        public string CoverUrl { get; set; } = "";
+        public string? CoverUrl { get; set; } // ? nullable
         public string EpisodesText { get; set; } = "";
     }
 }
