@@ -9,26 +9,19 @@
     BackgroundColor="{StaticResource ShellBg}"
     Shell.FlyoutBackgroundColor="{StaticResource ShellSurface}">
 
-    <!-- Tema inline (não depende do tema do Windows / funciona no Android) -->
     <Shell.Resources>
         <ResourceDictionary>
-
-            <!-- Ajuste aqui para bater 100% com suas páginas -->
             <Color x:Key="ShellBg">#0B1220</Color>
             <Color x:Key="ShellSurface">#0F172A</Color>
 
-            <!-- Texto/ícones (não branco puro) -->
             <Color x:Key="ShellText">#D1D5DB</Color>
             <Color x:Key="ShellMuted">#7C879A</Color>
             <Color x:Key="ShellDisabled">#4B5563</Color>
 
-            <!-- Selecionado -->
             <Color x:Key="ShellAccent">#6C8CFF</Color>
-
         </ResourceDictionary>
     </Shell.Resources>
 
-    <!-- ===== CORES DO TOPO / SHELL ===== -->
     <Shell.TitleColor>
         <StaticResource Key="ShellText" />
     </Shell.TitleColor>
@@ -41,7 +34,6 @@
         <StaticResource Key="ShellMuted" />
     </Shell.UnselectedColor>
 
-    <!-- ===== TAB BAR ===== -->
     <Shell.TabBarBackgroundColor>
         <StaticResource Key="ShellSurface" />
     </Shell.TabBarBackgroundColor>
@@ -58,7 +50,6 @@
         <StaticResource Key="ShellMuted" />
     </Shell.TabBarUnselectedColor>
 
-    <!-- ===== TEMPLATE DO FLYOUT (pra não ficar branco/sem contraste no Windows) ===== -->
     <Shell.ItemTemplate>
         <DataTemplate>
             <Grid Padding="14,12" ColumnDefinitions="22,*" BackgroundColor="Transparent">
@@ -86,7 +77,10 @@
     <ShellContent Route="profile" ContentTemplate="{DataTemplate views:ProfileView}" />
     <ShellContent Route="upgrade" ContentTemplate="{DataTemplate views:Upgrade}" />
 
-    <!-- ===== FLYOUT (WINDOWS) - agora o menu NÃO fica vazio ===== -->
+    <!-- ✅ NOVO: Afiliados -->
+    <ShellContent Route="affiliates" ContentTemplate="{DataTemplate views:AffiliatesView}" />
+
+    <!-- ===== FLYOUT (WINDOWS) ===== -->
     <FlyoutItem Title="Descobrir" Icon="tab_discover.png" Route="discover_flyout">
         <ShellContent ContentTemplate="{DataTemplate views:DiscoverView}" />
     </FlyoutItem>
@@ -105,6 +99,11 @@
 
     <FlyoutItem Title="Perfil" Icon="tab_profile.png" Route="profile_flyout">
         <ShellContent ContentTemplate="{DataTemplate views:ProfileView}" />
+    </FlyoutItem>
+
+    <!-- ✅ NOVO: Afiliados (Windows menu) -->
+    <FlyoutItem Title="Afiliados" Icon="tab_affiliates.png" Route="affiliates_flyout">
+        <ShellContent ContentTemplate="{DataTemplate views:AffiliatesView}" />
     </FlyoutItem>
 
     <!-- ===== TABBAR (ANDROID/iOS/Mac) ===== -->

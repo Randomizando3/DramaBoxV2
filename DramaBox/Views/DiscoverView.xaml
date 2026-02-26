@@ -96,7 +96,7 @@
                             Clicked="OnRewardsClicked"/>
                 </Border>
 
-                <Border HorizontalOptions="End"
+                <!--<Border HorizontalOptions="End"
                         VerticalOptions="Start"
                         TranslationX="6"
                         TranslationY="-6"
@@ -109,7 +109,7 @@
                            FontSize="11"
                            FontAttributes="Bold"
                            TextColor="White"/>
-                </Border>
+                </Border>-->
             </Grid>
 
             <!-- VIP -->

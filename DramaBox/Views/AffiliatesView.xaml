@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.AffiliatesView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+
+            <Color x:Key="TextLight">#0F172A</Color>
+            <Color x:Key="TextDark">#E5E7EB</Color>
+
+            <Color x:Key="MutedLight">#64748B</Color>
+            <Color x:Key="MutedDark">#9CA3AF</Color>
+
+            <Color x:Key="BorderLight">#E2E8F0</Color>
+            <Color x:Key="BorderDark">#1F2937</Color>
+
+            <Color x:Key="PrimaryLight">#6A35DF</Color>
+            <Color x:Key="PrimaryDark">#9B7BFF</Color>
+
+            <Style x:Key="H1" TargetType="Label">
+                <Setter Property="FontSize" Value="20"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+            </Style>
+
+            <Style x:Key="Muted" TargetType="Label">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"/>
+            </Style>
+
+            <Style x:Key="CardBorder" TargetType="Border">
+                <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"/>
+                <Setter Property="StrokeThickness" Value="1"/>
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=White, Dark=#0F1A2F}"/>
+                <Setter Property="Padding" Value="14"/>
+            </Style>
+
+            <Style x:Key="PrimaryBtn" TargetType="Button">
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="CornerRadius" Value="14"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="TextColor" Value="White"/>
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource PrimaryLight}, Dark={StaticResource PrimaryDark}}"/>
+            </Style>
+
+            <Style x:Key="GhostBtn" TargetType="Button">
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="CornerRadius" Value="14"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"/>
+            </Style>
+
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*"
+          BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+        <!-- TOPBAR -->
+        <Grid Grid.Row="0"
+              Padding="12,12,12,10"
+              ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="10"
+              BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+            <Border Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                    WidthRequest="44" HeightRequest="44">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <Button Text="←"
+                        FontSize="16"
+                        BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                        Clicked="OnBack"/>
+            </Border>
+
+            <StackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                <Label Text="Afiliados" Style="{StaticResource H1}" />
+                <Label Text="Compartilhe sua página e ganhe benefícios" Style="{StaticResource Muted}" />
+            </StackLayout>
+
+            <Border Grid.Column="2"
+                    Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                    WidthRequest="44" HeightRequest="44">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <Button Text="⟳"
+                        FontSize="16"
+                        BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                        Clicked="OnRefresh"/>
+            </Border>
+        </Grid>
+
+        <!-- CONTENT -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="12,0,12,16" Spacing="12">
+
+                <!-- CARD: SEU CÓDIGO -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Seu código" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Border StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    BackgroundColor="{AppThemeBinding Light=#F8FAFC, Dark=#0B152A}"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Label x:Name="CodeLabel"
+                                       Text="—"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                            </Border>
+
+                            <Button Grid.Column="1"
+                                    Text="Copiar"
+                                    Style="{StaticResource GhostBtn}"
+                                    WidthRequest="120"
+                                    HeightRequest="44"
+                                    Clicked="OnCopyCode"/>
+                        </Grid>
+
+                        <Label Text="Esse é o seu código de afiliado."
+                               Style="{StaticResource Muted}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- CARD: LINK (PAGINA.PHP) -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Seu link de indicação" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+
+                        <Border StrokeThickness="1"
+                                Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                BackgroundColor="{AppThemeBinding Light=#F8FAFC, Dark=#0B152A}"
+                                Padding="12">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="14"/>
+                            </Border.StrokeShape>
+                            <Label x:Name="LinkLabel"
+                                   Text="—"
+                                   FontSize="12"
+                                   LineBreakMode="CharacterWrap"
+                                   TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                        </Border>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Text="Copiar link"
+                                    Style="{StaticResource PrimaryBtn}"
+                                    HeightRequest="44"
+                                    Clicked="OnCopyLink"/>
+
+                            <Button Grid.Column="1"
+                                    Text="Compartilhar"
+                                    Style="{StaticResource GhostBtn}"
+                                    HeightRequest="44"
+                                    Clicked="OnShare"/>
+                        </Grid>
+
+                        <Label Text="Esse link vai para sua pagina.php, coleta o email e registra o lead como pending no Firebase."
+                               Style="{StaticResource Muted}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- CARD: STATS -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Estatísticas" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <Border StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B152A}"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16"/>
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Cliques (pendentes)" Style="{StaticResource Muted}" />
+                                    <Label x:Name="ClicksLabel"
+                                           Text="0"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Column="1"
+                                    StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B152A}"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16"/>
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Confirmados" Style="{StaticResource Muted}" />
+                                    <Label x:Name="SignupsLabel"
+                                           Text="0"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    StrokeThickness="1"
+                                    Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                    BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B152A}"
+                                    Padding="12">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="16"/>
+                                </Border.StrokeShape>
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Bônus" Style="{StaticResource Muted}" />
+                                    <Label x:Name="BonusLabel"
+                                           Text="0 🪙"
+                                           FontSize="18"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+
+                        <Label Text="Cliques = leads pendentes. Confirmado é quando pending vira confirmed no cadastro com o mesmo email."
+                               Style="{StaticResource Muted}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- CARD: SALDO (R$) placeholder -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Saldo estimado (R$)" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                        <Label x:Name="BalanceReaisLabel"
+                               Text="R$ 0,00"
+                               FontSize="28"
+                               FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                        <Label Text="(vamos ligar isso depois ao valor em reais do admin/affiliateroyalties)"
+                               Style="{StaticResource Muted}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- CARD: COMO FUNCIONA -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Como funciona" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                        <Label Text="1) A pessoa abre sua pagina.php pelo link." Style="{StaticResource Muted}"/>
+                        <Label Text="2) Ela informa o email e baixa → vira lead pending." Style="{StaticResource Muted}"/>
+                        <Label Text="3) Quando ela cadastrar no app com o mesmo email → vira confirmed e você ganha moedas." Style="{StaticResource Muted}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+</ContentPage>

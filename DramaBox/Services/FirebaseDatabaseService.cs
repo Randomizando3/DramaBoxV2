@@ -1019,7 +1019,7 @@ public sealed class FirebaseDatabaseService
                 new() { Id="daily_like_3", Title="Curtir 3 dramas", Description="Curta 3 episódios hoje.", Coins=15, IsDaily=true, Icon="💖", Sort=50 },
                 new() { Id="daily_share_3", Title="Compartilhar 3 dramas", Description="Compartilhe 3 episódios hoje.", Coins=18, IsDaily=true, Icon="🚀", Sort=60 },
 
-        
+
                 new()
                 {
                     Id="perm_follow_official",
@@ -1412,4 +1412,450 @@ public sealed class FirebaseDatabaseService
 
         return (true, "OK");
     }
+
+
+    // ============================================================
+    // AFFILIATES (compatível com seu BD atual)
+    // - pagina.php salva em: affiliates/leads/{CODE}/{pushId}
+    // - stats ficam em:      affiliates/stats/{REF_UID}
+    // - codes ficam em:      affiliates/codes/{CODE} => { uid, createdAtUnix }
+    //
+    // IMPORTANTE (seu caso):
+    // - Se o app NÃO tiver o code no Register, use o método AUTO abaixo que faz SCAN
+    //   em affiliates/leads/* procurando pending com emailLower igual ao email do cadastro.
+    //   (MVP – pode ser pesado quando crescer, mas resolve agora.)
+    //
+    // BONUS:
+    // - Ao confirmar (pending->confirmed), credita moedas em users/{refUid}/wallet/coins
+    //   com base no admin/affiliateroyalties (fallback para defaults do model).
+    // ============================================================
+
+    // -------- Config de royalties (admin) --------
+
+    public async Task<AffiliateRoyaltyConfig> GetAffiliateRoyaltiesAsync(string? idToken = null)
+    {
+        var cfg = await GetAsync<AffiliateRoyaltyConfig>("admin/affiliateroyalties", idToken);
+        return cfg ?? new AffiliateRoyaltyConfig { UpdatedAtUnix = NowUnix() };
+    }
+
+    public async Task<(bool ok, string message)> UpsertAffiliateRoyaltiesAsync(AffiliateRoyaltyConfig cfg, string? idToken = null)
+    {
+        if (cfg == null) return (false, "Config inválida.");
+        cfg.UpdatedAtUnix = NowUnix();
+        return await PutAsync("admin/affiliateroyalties", cfg, idToken);
+    }
+
+    // -------- Models (internos do service) --------
+
+    public sealed class AffiliateUser
+    {
+        public string Uid { get; set; } = "";
+        public string Code { get; set; } = "";
+        public string Link { get; set; } = "";
+        public long CreatedAtUnix { get; set; }
+        public long UpdatedAtUnix { get; set; }
+    }
+
+    public sealed class AffiliateCodeRow
+    {
+        public string Uid { get; set; } = "";
+        public long CreatedAtUnix { get; set; }
+    }
+
+    public sealed class AffiliateStats
+    {
+        public int Clicks { get; set; }       // opcional (no app, clicks = pendentes)
+        public int Signups { get; set; }      // confirmados
+        public int BonusCoins { get; set; }   // acumulado creditado
+        public long UpdatedAtUnix { get; set; }
+    }
+
+    public sealed class AffiliateLead
+    {
+        public string Id { get; set; } = "";
+
+        // No seu DB atual, ref geralmente é o CODE (ex: FRASX54Y).
+        public string Ref { get; set; } = "";
+
+        public string Source { get; set; } = "web";         // web|app
+        public string Status { get; set; } = "pending";     // pending|confirmed
+
+        public string EmailLower { get; set; } = "";
+        public string EmailHash { get; set; } = "";
+
+        public bool Downloaded { get; set; } = false;
+        public long CreatedAtUnix { get; set; }
+        public long ConfirmedAtUnix { get; set; }
+        public string ConfirmedUid { get; set; } = "";
+
+        public bool StatusEquals(string s)
+            => string.Equals((Status ?? "").Trim(), s, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static long UnixNow() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+    private static string NormalizeEmail(string? email)
+        => (email ?? "").Trim().ToLowerInvariant();
+
+    private static string GenerateCode(int len = 8)
+    {
+        const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sem 0/O/I/1
+        var rng = new Random();
+        return new string(Enumerable.Range(0, len).Select(_ => chars[rng.Next(chars.Length)]).ToArray());
+    }
+
+    public string BuildAffiliateLandingPageLink(string code)
+    {
+        code = (code ?? "").Trim().ToUpperInvariant();
+        return $"https://izzihub.com.br/pagina.php?ref={Uri.EscapeDataString(code)}";
+    }
+
+    /// <summary>
+    /// Garante affiliates/users/{uid}, affiliates/codes/{code}, affiliates/stats/{uid}.
+    /// Retorna (code, link)
+    /// </summary>
+    public async Task<(string? code, string? link)> EnsureAffiliateAsync(string uid, string? idToken = null)
+    {
+        uid = (uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(uid)) return (null, null);
+
+        var user = await GetAsync<AffiliateUser>($"affiliates/users/{uid}", idToken);
+        if (user != null && !string.IsNullOrWhiteSpace(user.Code))
+            return (user.Code, user.Link);
+
+        var now = UnixNow();
+        var code = GenerateCode(8);
+
+        for (var i = 0; i < 6; i++)
+        {
+            var exists = await GetAsync<AffiliateCodeRow>($"affiliates/codes/{code}", idToken);
+            if (exists == null || string.IsNullOrWhiteSpace(exists.Uid))
+                break;
+
+            code = GenerateCode(8);
+        }
+
+        // você ainda tem isso salvo, ok manter
+        var link = $"https://firebasestorage.googleapis.com/v0/b/dramabox-93e83.firebasestorage.app/o/ref%2F{code}.txt?alt=media";
+
+        var au = new AffiliateUser
+        {
+            Uid = uid,
+            Code = code,
+            Link = link,
+            CreatedAtUnix = now,
+            UpdatedAtUnix = now
+        };
+
+        var patch = new Dictionary<string, object?>
+        {
+            [$"affiliates/users/{uid}"] = au,
+            [$"affiliates/codes/{code}"] = new AffiliateCodeRow { Uid = uid, CreatedAtUnix = now },
+            [$"affiliates/stats/{uid}"] = new AffiliateStats { BonusCoins = 0, Clicks = 0, Signups = 0, UpdatedAtUnix = now }
+        };
+
+        await PatchAsync("", patch, idToken);
+        return (code, link);
+    }
+
+    public async Task<AffiliateStats?> GetAffiliateStatsAsync(string refUid, string? idToken = null)
+    {
+        refUid = (refUid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(refUid)) return null;
+        return await GetAsync<AffiliateStats>($"affiliates/stats/{refUid}", idToken);
+    }
+
+    /// <summary>
+    /// No seu BD atual, leads estão em affiliates/leads/{BUCKET}/{pushId}
+    /// onde BUCKET normalmente é o CODE.
+    /// </summary>
+    public async Task<List<AffiliateLead>> GetAffiliateLeadsByBucketAsync(string bucketId, string? idToken = null)
+    {
+        bucketId = (bucketId ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(bucketId)) return new List<AffiliateLead>();
+
+        var dict = await GetAsync<Dictionary<string, AffiliateLead>>($"affiliates/leads/{bucketId}", idToken);
+        if (dict == null || dict.Count == 0) return new List<AffiliateLead>();
+
+        var list = new List<AffiliateLead>(dict.Count);
+        foreach (var kv in dict)
+        {
+            var lead = kv.Value ?? new AffiliateLead();
+            lead.Id = kv.Key ?? "";
+            lead.EmailLower = NormalizeEmail(lead.EmailLower);
+            lead.Status = string.IsNullOrWhiteSpace(lead.Status) ? "pending" : lead.Status.Trim();
+            list.Add(lead);
+        }
+
+        return list;
+    }
+
+    // ---- ALIAS p/ compatibilidade com telas antigas ----
+    public Task<List<AffiliateLead>> GetAffiliateLeadsAsync(string bucketId, string? idToken = null)
+        => GetAffiliateLeadsByBucketAsync(bucketId, idToken);
+
+    /// <summary>
+    /// AUTO (o que você precisa AGORA):
+    /// - Se tiver affiliateCode, tenta confirmar pelo bucket do CODE (e fallback por UID).
+    /// - Se NÃO tiver affiliateCode, faz SCAN em affiliates/leads/* procurando pending por emailLower.
+    /// </summary>
+    public async Task<(bool ok, string message)> ConfirmAffiliateLeadOnRegisterAutoAsync(
+        string? affiliateCodeOrEmpty,
+        string registeredEmail,
+        string newUserUid,
+        string? idToken = null
+    )
+    {
+        var code = (affiliateCodeOrEmpty ?? "").Trim().ToUpperInvariant();
+        var emailLower = NormalizeEmail(registeredEmail);
+        newUserUid = (newUserUid ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(emailLower)) return (false, "email vazio.");
+        if (string.IsNullOrWhiteSpace(newUserUid)) return (false, "uid vazio.");
+
+        if (!string.IsNullOrWhiteSpace(code))
+            return await ConfirmAffiliateLeadOnRegisterByCodeAsync(code, emailLower, newUserUid, idToken);
+
+        // Sem code => SCAN global (MVP)
+        return await ConfirmAffiliateLeadOnRegisterScanAllAsync(emailLower, newUserUid, idToken);
+    }
+
+    /// <summary>
+    /// Resolve refUid via affiliates/codes/{code}/uid
+    /// e confirma o lead PENDENTE casando pelo emailLower no bucket do CODE.
+    /// Mantém fallback legado: bucket por UID.
+    /// </summary>
+    public async Task<(bool ok, string message)> ConfirmAffiliateLeadOnRegisterByCodeAsync(
+        string affiliateCode,
+        string registeredEmail,
+        string newUserUid,
+        string? idToken = null
+    )
+    {
+        affiliateCode = (affiliateCode ?? "").Trim().ToUpperInvariant();
+        var emailLower = NormalizeEmail(registeredEmail);
+        newUserUid = (newUserUid ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(affiliateCode)) return (false, "affiliateCode vazio.");
+        if (string.IsNullOrWhiteSpace(emailLower)) return (false, "email vazio.");
+        if (string.IsNullOrWhiteSpace(newUserUid)) return (false, "newUserUid vazio.");
+
+        var row = await GetAsync<AffiliateCodeRow>($"affiliates/codes/{affiliateCode}", idToken);
+        var refUid = (row?.Uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(refUid)) return (false, "Código inválido (sem uid).");
+
+        // evita auto-indicação
+        if (string.Equals(refUid, newUserUid, StringComparison.Ordinal))
+            return (false, "Auto indicação ignorada.");
+
+        // 1) bucket correto (CODE)
+        var r1 = await ConfirmAffiliateLeadInBucketAsync(
+            bucketId: affiliateCode,
+            refUid: refUid,
+            registeredEmailLower: emailLower,
+            newUserUid: newUserUid,
+            affiliateCode: affiliateCode,
+            idToken: idToken
+        );
+
+        if (r1.ok) return r1;
+
+        // 2) fallback legado (UID)
+        var r2 = await ConfirmAffiliateLeadInBucketAsync(
+            bucketId: refUid,
+            refUid: refUid,
+            registeredEmailLower: emailLower,
+            newUserUid: newUserUid,
+            affiliateCode: affiliateCode,
+            idToken: idToken
+        );
+
+        if (r2.ok) return r2;
+
+        return (false, $"Falhou (bucket CODE e UID). CODE: {r1.message} | UID: {r2.message}");
+    }
+
+    /// <summary>
+    /// SCAN GLOBAL (MVP):
+    /// procura em affiliates/leads/* um lead pending com emailLower.
+    /// Quando acha:
+    /// - confirma em affiliates/leads/{CODE}/{pushId}
+    /// - incrementa affiliates/stats/{refUid}
+    /// - credita coins ao afiliado (wallet)
+    /// </summary>
+    private async Task<(bool ok, string message)> ConfirmAffiliateLeadOnRegisterScanAllAsync(
+        string registeredEmailLower,
+        string newUserUid,
+        string? idToken
+    )
+    {
+        registeredEmailLower = NormalizeEmail(registeredEmailLower);
+        newUserUid = (newUserUid ?? "").Trim();
+
+        if (string.IsNullOrWhiteSpace(registeredEmailLower)) return (false, "email vazio.");
+        if (string.IsNullOrWhiteSpace(newUserUid)) return (false, "uid vazio.");
+
+        // Estrutura: { CODE: { pushId: lead } }
+        var all = await GetAsync<Dictionary<string, Dictionary<string, AffiliateLead>>>("affiliates/leads", idToken);
+        if (all == null || all.Count == 0) return (false, "Nenhum bucket em affiliates/leads.");
+
+        string? foundCode = null;
+        AffiliateLead? foundLead = null;
+
+        foreach (var bucket in all)
+        {
+            var code = (bucket.Key ?? "").Trim().ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(code)) continue;
+
+            var dict = bucket.Value;
+            if (dict == null || dict.Count == 0) continue;
+
+            var match = dict
+                .Select(kv =>
+                {
+                    var l = kv.Value ?? new AffiliateLead();
+                    l.Id = kv.Key ?? "";
+                    l.EmailLower = NormalizeEmail(l.EmailLower);
+                    l.Status = (l.Status ?? "pending").Trim();
+                    return l;
+                })
+                .Where(l => l.StatusEquals("pending") && l.EmailLower == registeredEmailLower)
+                .OrderBy(l => l.CreatedAtUnix)
+                .FirstOrDefault();
+
+            if (match != null && !string.IsNullOrWhiteSpace(match.Id))
+            {
+                foundCode = code;
+                foundLead = match;
+                break;
+            }
+        }
+
+        if (foundCode == null || foundLead == null)
+            return (false, "SCAN: não achei lead pending com esse email em nenhum bucket.");
+
+        var row = await GetAsync<AffiliateCodeRow>($"affiliates/codes/{foundCode}", idToken);
+        var refUid = (row?.Uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(refUid))
+            return (false, "SCAN: achei lead, mas affiliates/codes/{code} não tem uid.");
+
+        if (string.Equals(refUid, newUserUid, StringComparison.Ordinal))
+            return (false, "SCAN: auto indicação ignorada.");
+
+        return await ConfirmAffiliateLeadInBucketAsync(
+            bucketId: foundCode,
+            refUid: refUid,
+            registeredEmailLower: registeredEmailLower,
+            newUserUid: newUserUid,
+            affiliateCode: foundCode,
+            idToken: idToken
+        );
+    }
+
+    /// <summary>
+    /// Confirma 1 lead PENDENTE em um bucket específico:
+    /// affiliates/leads/{bucketId}/{pushId}
+    /// e:
+    /// - incrementa signups do dono (refUid)
+    /// - credita coins na wallet do dono (refUid) e soma bonusCoins em stats
+    /// </summary>
+    private async Task<(bool ok, string message)> ConfirmAffiliateLeadInBucketAsync(
+        string bucketId,
+        string refUid,
+        string registeredEmailLower,
+        string newUserUid,
+        string affiliateCode,
+        string? idToken
+    )
+    {
+        bucketId = (bucketId ?? "").Trim();
+        refUid = (refUid ?? "").Trim();
+        registeredEmailLower = NormalizeEmail(registeredEmailLower);
+        newUserUid = (newUserUid ?? "").Trim();
+        affiliateCode = (affiliateCode ?? "").Trim().ToUpperInvariant();
+
+        if (string.IsNullOrWhiteSpace(bucketId)) return (false, "bucketId vazio.");
+        if (string.IsNullOrWhiteSpace(refUid)) return (false, "refUid vazio.");
+        if (string.IsNullOrWhiteSpace(registeredEmailLower)) return (false, "email vazio.");
+        if (string.IsNullOrWhiteSpace(newUserUid)) return (false, "uid vazio.");
+
+        var dict = await GetAsync<Dictionary<string, AffiliateLead>>($"affiliates/leads/{bucketId}", idToken);
+        if (dict == null || dict.Count == 0) return (false, "Nenhum lead no bucket.");
+
+        var match = dict
+            .Select(kv =>
+            {
+                var l = kv.Value ?? new AffiliateLead();
+                l.Id = kv.Key ?? "";
+                l.EmailLower = NormalizeEmail(l.EmailLower);
+                l.Status = (l.Status ?? "pending").Trim();
+                return l;
+            })
+            .Where(l => l.StatusEquals("pending") && l.EmailLower == registeredEmailLower)
+            .OrderBy(l => l.CreatedAtUnix)
+            .FirstOrDefault();
+
+        if (match == null || string.IsNullOrWhiteSpace(match.Id))
+            return (false, "Nenhum pendente com esse email.");
+
+        var now = UnixNow();
+
+        // lê stats atual
+        var stats = await GetAsync<AffiliateStats>($"affiliates/stats/{refUid}", idToken);
+        var newSignups = (stats?.Signups ?? 0) + 1;
+
+        // lê royalties (admin)
+        var cfg = await GetAffiliateRoyaltiesAsync(idToken);
+        var awardCoins = Math.Max(0, cfg.CoinsPerConfirmedSignup);
+
+        // credita coins no afiliado (wallet)
+        // (MVP: read + patch)
+        var curCoins = await GetUserCoinsAsync(refUid, idToken);
+        var nextCoins = curCoins + awardCoins;
+
+        // soma bonusCoins em stats também
+        var newBonusCoins = (stats?.BonusCoins ?? 0) + awardCoins;
+
+        var patch = new Dictionary<string, object?>
+        {
+            // confirma lead
+            [$"affiliates/leads/{bucketId}/{match.Id}/status"] = "confirmed",
+            [$"affiliates/leads/{bucketId}/{match.Id}/confirmedAtUnix"] = now,
+            [$"affiliates/leads/{bucketId}/{match.Id}/confirmedUid"] = newUserUid,
+
+            // stats do dono do código
+            [$"affiliates/stats/{refUid}/signups"] = newSignups,
+            [$"affiliates/stats/{refUid}/bonusCoins"] = newBonusCoins,
+            [$"affiliates/stats/{refUid}/updatedAtUnix"] = now,
+
+            // wallet do afiliado (dono do código)
+            [$"users/{refUid}/wallet/coins"] = nextCoins,
+            [$"users/{refUid}/wallet/updatedAtUnix"] = now,
+            [$"users/{refUid}/wallet/lastReason"] = $"affiliate:confirmed:{bucketId}",
+
+            // ledger (pra auditoria)
+            [$"users/{refUid}/wallet/ledger/{now}_affiliate_confirmed_{match.Id}"] = new Dictionary<string, object?>
+            {
+                ["type"] = "affiliate",
+                ["deltaCoins"] = awardCoins,
+                ["reason"] = $"confirmed:{bucketId}",
+                ["leadId"] = match.Id,
+                ["newUserUid"] = newUserUid,
+                ["createdAtUnix"] = now
+            },
+
+            // auditoria no novo usuário
+            [$"users/{newUserUid}/affiliate/referredByUid"] = refUid,
+            [$"users/{newUserUid}/affiliate/referredByCode"] = affiliateCode,
+            [$"users/{newUserUid}/affiliate/registeredEmailLower"] = registeredEmailLower,
+            [$"users/{newUserUid}/affiliate/leadBucket"] = bucketId,
+            [$"users/{newUserUid}/affiliate/leadId"] = match.Id,
+            [$"users/{newUserUid}/affiliate/confirmedAtUnix"] = now,
+            [$"users/{newUserUid}/affiliate/coinsAwardedToReferrer"] = awardCoins,
+        };
+
+        var r = await PatchAsync("", patch, idToken);
+        return r.ok ? (true, "OK") : (false, r.message ?? "Falha no Patch.");
+    }
+
 }
