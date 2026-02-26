@@ -16,25 +16,6 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Header -->
-            <!--<VerticalStackLayout Grid.Row="0"
-                                 Spacing="10"
-                                 HorizontalOptions="Center">
-
-                <Image Source="logo.png"
-                       HeightRequest="150"
-                       WidthRequest="200"
-                       Aspect="AspectFit" />
-
-                <Label Text="Criar conta"
-                       Style="{StaticResource TitleLargeLabelStyle}"
-                       HorizontalTextAlignment="Center" />
-
-                <Label Text="Preencha os dados para começar."
-                       Style="{StaticResource MutedLabelStyle}"
-                       HorizontalTextAlignment="Center" />
-            </VerticalStackLayout>-->
-
             <!-- Card -->
             <Border Grid.Row="1"
                     Style="{StaticResource CardBorderStyle}"
@@ -46,18 +27,27 @@
                     <Label Text="Nome"
                            Style="{StaticResource MutedLabelStyle}"
                            FontAttributes="Bold" />
-
                     <Border Style="{StaticResource InputContainerStyle}">
                         <Entry x:Name="NameEntry"
                                Style="{StaticResource InputEntryStyle}"
                                Placeholder="seu nome completo" />
                     </Border>
 
+                    <!-- Telefone -->
+                    <Label Text="Telefone"
+                           Style="{StaticResource MutedLabelStyle}"
+                           FontAttributes="Bold" />
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry x:Name="PhoneEntry"
+                               Style="{StaticResource InputEntryStyle}"
+                               Keyboard="Telephone"
+                               Placeholder="(11) 99999-9999" />
+                    </Border>
+
                     <!-- Email -->
                     <Label Text="Email"
                            Style="{StaticResource MutedLabelStyle}"
                            FontAttributes="Bold" />
-
                     <Border Style="{StaticResource InputContainerStyle}">
                         <Entry x:Name="EmailEntry"
                                Style="{StaticResource InputEntryStyle}"
@@ -65,11 +55,21 @@
                                Placeholder="seuemail@dominio.com" />
                     </Border>
 
+                    <!-- Confirmar Email -->
+                    <Label Text="Confirmar email"
+                           Style="{StaticResource MutedLabelStyle}"
+                           FontAttributes="Bold" />
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry x:Name="ConfirmEmailEntry"
+                               Style="{StaticResource InputEntryStyle}"
+                               Keyboard="Email"
+                               Placeholder="repita seu email" />
+                    </Border>
+
                     <!-- Senha -->
                     <Label Text="Senha"
                            Style="{StaticResource MutedLabelStyle}"
                            FontAttributes="Bold" />
-
                     <Border Style="{StaticResource InputContainerStyle}">
                         <AbsoluteLayout HeightRequest="48">
 
@@ -89,6 +89,17 @@
                                     AbsoluteLayout.LayoutBounds="1,0.5,40,40"
                                     AbsoluteLayout.LayoutFlags="PositionProportional" />
                         </AbsoluteLayout>
+                    </Border>
+
+                    <!-- Confirmar Senha -->
+                    <Label Text="Confirmar senha"
+                           Style="{StaticResource MutedLabelStyle}"
+                           FontAttributes="Bold" />
+                    <Border Style="{StaticResource InputContainerStyle}">
+                        <Entry x:Name="ConfirmPasswordEntry"
+                               Style="{StaticResource InputEntryStyle}"
+                               IsPassword="True"
+                               Placeholder="repita sua senha" />
                     </Border>
 
                     <!-- Botão criar conta -->

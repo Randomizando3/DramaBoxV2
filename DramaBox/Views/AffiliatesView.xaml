@@ -69,7 +69,7 @@
               ColumnSpacing="10"
               BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
 
-            <Border Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+            <!--<Border Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
                     StrokeThickness="1"
                     BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
                     WidthRequest="44" HeightRequest="44">
@@ -81,7 +81,7 @@
                         BackgroundColor="Transparent"
                         TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
                         Clicked="OnBack"/>
-            </Border>
+            </Border>-->
 
             <StackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
                 <Label Text="Afiliados" Style="{StaticResource H1}" />

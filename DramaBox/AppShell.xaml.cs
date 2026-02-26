@@ -11,10 +11,7 @@ namespace DramaBox
             Routing.RegisterRoute("login", typeof(LoginView));
             Routing.RegisterRoute("register", typeof(RegisterView));
             Routing.RegisterRoute("upgrade", typeof(Upgrade));
-
-
+            Routing.RegisterRoute("affiliates", typeof(AffiliatesView)); // se tiver essa tela
         }
-
-
     }
 }

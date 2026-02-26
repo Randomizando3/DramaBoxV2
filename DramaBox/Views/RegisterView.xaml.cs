@@ -1,4 +1,4 @@
-// RegisterView.xaml.cs
+// Views/RegisterView.xaml.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -42,8 +42,9 @@ public partial class RegisterView : ContentPage
         _session = Resolve<SessionService>() ?? new SessionService();
 
         _isPasswordVisible = false;
-        if (PasswordEntry != null)
-            PasswordEntry.IsPassword = true;
+
+        if (PasswordEntry != null) PasswordEntry.IsPassword = true;
+        if (ConfirmPasswordEntry != null) ConfirmPasswordEntry.IsPassword = true;
 
         // Fallback: se já veio de algum lugar e ficou salvo
         var pending = Preferences.Default.Get(PrefReferralKey, "");
@@ -87,7 +88,7 @@ public partial class RegisterView : ContentPage
                 }
             }
 
-            // /CODE no final (se você usar URL amigável no futuro)
+            // /CODE no final
             var last = uri.Segments?.Length > 0 ? uri.Segments[^1] : "";
             last = (last ?? "").Trim('/').Trim();
             if (!string.IsNullOrWhiteSpace(last)) return last;
@@ -95,7 +96,6 @@ public partial class RegisterView : ContentPage
             return raw;
         }
 
-        // se já veio “CODE” puro
         return raw;
     }
 
@@ -112,8 +112,12 @@ public partial class RegisterView : ContentPage
     private void OnTogglePasswordClicked(object sender, EventArgs e)
     {
         _isPasswordVisible = !_isPasswordVisible;
+
         if (PasswordEntry != null)
             PasswordEntry.IsPassword = !_isPasswordVisible;
+
+        if (ConfirmPasswordEntry != null)
+            ConfirmPasswordEntry.IsPassword = !_isPasswordVisible;
     }
 
     private static long UnixNow() => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -121,10 +125,11 @@ public partial class RegisterView : ContentPage
     private static string NormalizeEmail(string? email)
         => (email ?? "").Trim().ToLowerInvariant();
 
+    private static string NormalizePhone(string? phone)
+        => new string((phone ?? "").Where(char.IsDigit).ToArray());
+
     /// <summary>
-    /// Quando NÃO existe pendingCode salvo (app abriu direto no register sem query/ref),
-    /// fazemos um scan em affiliates/leads/* procurando o email pending.
-    /// Regras abertas permitem isso, mas é pesado: use só como fallback.
+    /// Quando NÃO existe pendingCode salvo, fazemos scan em affiliates/leads/* procurando o email pending.
     /// Retorna o CODE (bucket) se achar.
     /// </summary>
     private async System.Threading.Tasks.Task<string?> FindAffiliateCodeByEmailScanAsync(string emailLower, string idToken)
@@ -132,18 +137,14 @@ public partial class RegisterView : ContentPage
         emailLower = NormalizeEmail(emailLower);
         if (string.IsNullOrWhiteSpace(emailLower)) return null;
 
-        // Estrutura esperada:
-        // affiliates/leads/{CODE}/{pushId} => { emailLower, status, createdAtUnix... }
         var all = await _db.GetAsync<Dictionary<string, Dictionary<string, object>>>("affiliates/leads", idToken);
         if (all == null || all.Count == 0) return null;
 
-        // varre buckets (CODEs)
         foreach (var bucket in all)
         {
             var code = (bucket.Key ?? "").Trim().ToUpperInvariant();
             if (string.IsNullOrWhiteSpace(code)) continue;
 
-            // tenta ler o bucket tipado (bem mais seguro do que mexer em object)
             var leads = await _db.GetAsync<Dictionary<string, FirebaseDatabaseService.AffiliateLead>>($"affiliates/leads/{code}", idToken);
             if (leads == null || leads.Count == 0) continue;
 
@@ -173,14 +174,43 @@ public partial class RegisterView : ContentPage
     private async void OnRegisterClicked(object sender, EventArgs e)
     {
         var name = NameEntry?.Text?.Trim() ?? "";
+
+        var phoneRaw = PhoneEntry?.Text?.Trim() ?? "";
+        var phoneDigits = NormalizePhone(phoneRaw);
+
         var email = EmailEntry?.Text?.Trim() ?? "";
+        var email2 = ConfirmEmailEntry?.Text?.Trim() ?? "";
+
         var password = PasswordEntry?.Text ?? "";
+        var password2 = ConfirmPasswordEntry?.Text ?? "";
 
         if (string.IsNullOrWhiteSpace(name) ||
+            string.IsNullOrWhiteSpace(phoneDigits) ||
             string.IsNullOrWhiteSpace(email) ||
-            string.IsNullOrWhiteSpace(password))
+            string.IsNullOrWhiteSpace(email2) ||
+            string.IsNullOrWhiteSpace(password) ||
+            string.IsNullOrWhiteSpace(password2))
         {
-            await DisplayAlert("Cadastro", "Preencha nome, email e senha.", "OK");
+            await DisplayAlert("Cadastro", "Preencha nome, telefone, email (2x) e senha (2x).", "OK");
+            return;
+        }
+
+        if (!string.Equals(NormalizeEmail(email), NormalizeEmail(email2), StringComparison.OrdinalIgnoreCase))
+        {
+            await DisplayAlert("Cadastro", "Os emails não conferem.", "OK");
+            return;
+        }
+
+        if (!string.Equals(password, password2, StringComparison.Ordinal))
+        {
+            await DisplayAlert("Cadastro", "As senhas não conferem.", "OK");
+            return;
+        }
+
+        // validação simples de telefone (ajuste se quiser)
+        if (phoneDigits.Length < 10)
+        {
+            await DisplayAlert("Cadastro", "Telefone inválido. Informe com DDD.", "OK");
             return;
         }
 
@@ -200,14 +230,15 @@ public partial class RegisterView : ContentPage
             // 3) cria sessão
             _session.SetSession(result.IdToken, result.RefreshToken, result.LocalId, result.Email);
 
-            // 4) salva perfil
+            // 4) salva perfil (inclui telefone)
             var profile = new UserProfile
             {
                 UserId = result.LocalId,
                 Email = result.Email,
                 Nome = name,
                 FotoUrl = "",
-                Plano = "free"
+                Plano = "free",
+                Telefone = phoneDigits // <<<<< NOVO
             };
 
             var (saved, saveMsg) = await _db.UpsertUserProfileAsync(result.LocalId, profile, result.IdToken);
@@ -217,9 +248,7 @@ public partial class RegisterView : ContentPage
                 return;
             }
 
-            // 5) AFILIADO: confirma
-            //    - primeiro com pendingCode (fluxo normal)
-            //    - se não tiver pendingCode, faz scan por email (fallback)
+            // 5) AFILIADO: confirma (pendingCode normal, scan fallback)
             var emailLower = NormalizeEmail(result.Email ?? email);
             string? codeToUse = !string.IsNullOrWhiteSpace(pendingCode) ? pendingCode : null;
 
@@ -235,7 +264,6 @@ public partial class RegisterView : ContentPage
                     idToken: result.IdToken
                 );
 
-                // debug sempre
                 var now = UnixNow();
                 await _db.PatchAsync("", new Dictionary<string, object?>
                 {
@@ -248,7 +276,6 @@ public partial class RegisterView : ContentPage
 
                 ClearPendingReferral();
 
-                // se falhou, mostra (agora você enxerga o motivo imediatamente)
                 if (!cok)
                     await DisplayAlert("Afiliado", $"Não consegui confirmar: {cmsg}", "OK");
             }
@@ -261,7 +288,6 @@ public partial class RegisterView : ContentPage
         }
         catch (Exception ex)
         {
-            // debug opcional (pra você ver no device)
             try
             {
                 await DisplayAlert("Cadastro", $"Erro inesperado ao criar conta.\n{ex.Message}", "OK");

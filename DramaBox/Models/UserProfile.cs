@@ -8,6 +8,7 @@ public sealed class UserProfile
     // ===== Identidade =====
     public string UserId { get; set; } = "";     // localId do Firebase Auth
     public string Email { get; set; } = "";
+    public string Telefone { get; set; } = "";
 
     // ===== Perfil (padrão "direto") =====
     public string Nome { get; set; } = "";       // <- usado nas Views

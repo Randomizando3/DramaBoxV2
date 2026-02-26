@@ -1,13 +1,13 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Net.Http;
+using Microsoft.Extensions.Logging;
+
 using DramaBox.Views;
 using DramaBox.Services;
 
-// ✅ ADICIONE
 using CommunityToolkit.Maui;
 
 #if WINDOWS
-using Microsoft.Maui.LifecycleEvents;
-using Microsoft.UI;
+using Microsoft.Maui.LifecycleEvents;          // ✅ necessário pro ConfigureLifecycleEvents aparecer
 using Microsoft.UI.Windowing;
 using Windows.Graphics;
 #endif
@@ -22,11 +22,8 @@ namespace DramaBox
 
             builder
                 .UseMauiApp<App>()
-
-                // ✅ ADICIONE (pode ficar aqui)
                 .UseMauiCommunityToolkit()
                 .UseMauiCommunityToolkitMediaElement()
-
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -55,29 +52,27 @@ namespace DramaBox
                         const int targetWidth = 382;
                         const int targetHeight = 680;
 
-                        var nativeWindow = window;
-                        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(nativeWindow);
-                        var windowId = Win32Interop.GetWindowIdFromWindow(hwnd);
-
-                        var appWindow = AppWindow.GetFromWindowId(windowId);
-                        if (appWindow is null)
-                            return;
-
-                        appWindow.Resize(new SizeInt32(targetWidth, targetHeight));
-
-                        var presenter = appWindow.Presenter as OverlappedPresenter;
-                        if (presenter != null)
-                        {
-                            presenter.IsResizable = false;
-                            presenter.IsMaximizable = false;
-                        }
-
                         try
                         {
-                            appWindow.SetPresenter(AppWindowPresenterKind.Overlapped);
+                            var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                            var appWindow = AppWindow.GetFromWindowId(windowId);
+                            if (appWindow is null) return;
+
+                            appWindow.Resize(new SizeInt32(targetWidth, targetHeight));
+
+                            if (appWindow.Presenter is OverlappedPresenter presenter)
+                            {
+                                presenter.IsResizable = false;
+                                presenter.IsMaximizable = false;
+                            }
+
                             appWindow.Title = "DramaBox (Mobile Preview)";
                         }
-                        catch { }
+                        catch
+                        {
+                            // não quebra a app
+                        }
                     });
                 });
             });
