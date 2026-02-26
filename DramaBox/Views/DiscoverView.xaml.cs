@@ -181,7 +181,7 @@ public partial class DiscoverView : ContentPage
 
     // ? botão do presente (por enquanto só placeholder)
     private async void OnRewardsClicked(object sender, EventArgs e)
-        => await DisplayAlert("Recompensas", "Em breve.", "OK");
+        => await Navigation.PushAsync(new RewardsView());
 
     private async Task OpenDramaAsync(DramaSeries? drama)
     {

@@ -75,18 +75,20 @@ public partial class Upgrade : ContentPage
                 Email = _session.Email ?? "",
                 Nome = fallbackName,
                 Plano = "free",
+                PremiumUntilUnix = 0,
                 FotoUrl = ""
             };
 
             await _db.UpsertUserProfileAsync(uid, _profile, token);
         }
 
-        _session.SetProfile(_profile);
+        // ? garante consistência (se premium expirou, volta free; se premium válido, mantém)
+        await _db.EnsurePremiumConsistencyAsync(uid, token);
 
-        // Se quiser destacar o card selecionado, fazemos depois.
+        _profile = await _db.GetUserProfileAsync(uid, token);
+        _session.SetProfile(_profile);
     }
 
-    // ? Handler que seu XAML está chamando
     private async void OnBackClicked(object sender, EventArgs e)
     {
         await Navigation.PopAsync();
@@ -99,7 +101,7 @@ public partial class Upgrade : ContentPage
 
     private async void OnSelectPremiumClicked(object sender, EventArgs e)
     {
-        var ok = await DisplayAlert("Premium", "Selecionar Premium? (mock, sem pagamento)", "Sim", "Cancelar");
+        var ok = await DisplayAlert("Premium", "Selecionar Premium por 30 dias? (mock, sem pagamento)", "Sim", "Cancelar");
         if (!ok) return;
 
         await SetPlanAsync("premium");
@@ -115,7 +117,22 @@ public partial class Upgrade : ContentPage
             if (string.IsNullOrWhiteSpace(uid))
                 return;
 
-            var resp = await _db.PatchAsync($"users/{uid}/profile", new { Plano = plan }, token);
+            plan = (plan ?? "").Trim().ToLowerInvariant();
+            if (plan != "free" && plan != "premium") plan = "free";
+
+            // ? regra:
+            // - free: PremiumUntilUnix = 0
+            // - premium: PremiumUntilUnix = now + 30 dias
+            long premiumUntil = 0;
+
+            if (plan == "premium")
+                premiumUntil = DateTimeOffset.UtcNow.AddDays(30).ToUnixTimeSeconds();
+
+            var resp = await _db.PatchAsync($"users/{uid}/profile", new
+            {
+                Plano = plan,
+                PremiumUntilUnix = premiumUntil
+            }, token);
 
             if (!resp.ok)
             {
@@ -124,11 +141,16 @@ public partial class Upgrade : ContentPage
             }
 
             if (_profile != null)
+            {
                 _profile.Plano = plan;
+                _profile.PremiumUntilUnix = premiumUntil;
+            }
 
             _session.SetProfile(_profile);
 
-            await DisplayAlert("Planos", $"Plano atualizado para: {plan}", "OK");
+            await DisplayAlert("Planos", plan == "premium"
+                ? "Premium ativado por 30 dias!"
+                : "Plano atualizado para Free.", "OK");
         }
         catch (Exception ex)
         {

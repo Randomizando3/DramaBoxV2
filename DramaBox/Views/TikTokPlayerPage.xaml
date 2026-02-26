@@ -43,14 +43,14 @@
               HorizontalOptions="Start">
             <VerticalStackLayout Spacing="6">
                 <Label Text="{Binding Current.CreatorName}"
-                       TextColor="#cccccc"
+                       TextColor="White"
                        FontAttributes="Bold"
                        FontSize="14" />
                 <Label Text="{Binding Current.DramaTitle}"
-                       TextColor="#cccccc"
+                       TextColor="White"
                        FontSize="13" />
                 <Label Text="{Binding Current.EpisodeTitle}"
-                       TextColor="#cccccc"
+                       TextColor="White"
                        Opacity="0.75"
                        FontSize="12" />
             </VerticalStackLayout>

@@ -14,7 +14,11 @@ public sealed class UserProfile
     public string FotoUrl { get; set; } = "";    // <- usado nas Views (url pública/baixável)
     public string Plano { get; set; } = "free";  // <- "free" | "premium"
 
-    // ===== Compat (se você já tinha isso em outras partes) =====
+    // ===== Premium (VIP) =====
+    // 0 = sem prazo (infinito). >0 = unix seconds de vencimento
+    public long PremiumUntilUnix { get; set; } = 0;
+
+    // ===== Compat =====
     public string DisplayName
     {
         get => Nome ?? "";
@@ -27,11 +31,22 @@ public sealed class UserProfile
         set => FotoUrl = value ?? "";
     }
 
-    // Para facilitar em lógica futura
     public bool IsPremium
     {
-        get => string.Equals(Plano, "premium", StringComparison.OrdinalIgnoreCase);
-        set => Plano = value ? "premium" : "free";
+        get
+        {
+            var isPlanPremium = string.Equals(Plano, "premium", StringComparison.OrdinalIgnoreCase);
+            if (!isPlanPremium) return false;
+
+            if (PremiumUntilUnix <= 0) return true; // sem prazo = premium ativo
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return PremiumUntilUnix > now;
+        }
+        set
+        {
+            Plano = value ? "premium" : "free";
+            if (!value) PremiumUntilUnix = 0;
+        }
     }
 
     // ===== Auditoria =====

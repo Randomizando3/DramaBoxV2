@@ -4,9 +4,81 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:DramaBox.Views"
-    Shell.NavBarIsVisible="False">
+    Shell.NavBarIsVisible="True"
+    FlyoutBehavior="{OnPlatform WinUI=Flyout, Default=Disabled}"
+    BackgroundColor="{StaticResource ShellBg}"
+    Shell.FlyoutBackgroundColor="{StaticResource ShellSurface}">
 
-    <!-- Rotas (para navegação) -->
+    <!-- Tema inline (não depende do tema do Windows / funciona no Android) -->
+    <Shell.Resources>
+        <ResourceDictionary>
+
+            <!-- Ajuste aqui para bater 100% com suas páginas -->
+            <Color x:Key="ShellBg">#0B1220</Color>
+            <Color x:Key="ShellSurface">#0F172A</Color>
+
+            <!-- Texto/ícones (não branco puro) -->
+            <Color x:Key="ShellText">#D1D5DB</Color>
+            <Color x:Key="ShellMuted">#7C879A</Color>
+            <Color x:Key="ShellDisabled">#4B5563</Color>
+
+            <!-- Selecionado -->
+            <Color x:Key="ShellAccent">#6C8CFF</Color>
+
+        </ResourceDictionary>
+    </Shell.Resources>
+
+    <!-- ===== CORES DO TOPO / SHELL ===== -->
+    <Shell.TitleColor>
+        <StaticResource Key="ShellText" />
+    </Shell.TitleColor>
+
+    <Shell.DisabledColor>
+        <StaticResource Key="ShellDisabled" />
+    </Shell.DisabledColor>
+
+    <Shell.UnselectedColor>
+        <StaticResource Key="ShellMuted" />
+    </Shell.UnselectedColor>
+
+    <!-- ===== TAB BAR ===== -->
+    <Shell.TabBarBackgroundColor>
+        <StaticResource Key="ShellSurface" />
+    </Shell.TabBarBackgroundColor>
+
+    <Shell.TabBarForegroundColor>
+        <StaticResource Key="ShellAccent" />
+    </Shell.TabBarForegroundColor>
+
+    <Shell.TabBarTitleColor>
+        <StaticResource Key="ShellAccent" />
+    </Shell.TabBarTitleColor>
+
+    <Shell.TabBarUnselectedColor>
+        <StaticResource Key="ShellMuted" />
+    </Shell.TabBarUnselectedColor>
+
+    <!-- ===== TEMPLATE DO FLYOUT (pra não ficar branco/sem contraste no Windows) ===== -->
+    <Shell.ItemTemplate>
+        <DataTemplate>
+            <Grid Padding="14,12" ColumnDefinitions="22,*" BackgroundColor="Transparent">
+                <Image Grid.Column="0"
+                       HeightRequest="18"
+                       WidthRequest="18"
+                       VerticalOptions="Center"
+                       Source="{Binding Icon}"
+                       Opacity="0.95" />
+                <Label Grid.Column="1"
+                       VerticalOptions="Center"
+                       Margin="12,0,0,0"
+                       FontSize="14"
+                       Text="{Binding Title}"
+                       TextColor="{StaticResource ShellText}" />
+            </Grid>
+        </DataTemplate>
+    </Shell.ItemTemplate>
+
+    <!-- ===== ROTAS (navegação) ===== -->
     <ShellContent Route="discover" ContentTemplate="{DataTemplate views:DiscoverView}" />
     <ShellContent Route="community" ContentTemplate="{DataTemplate views:CommunityView}" />
     <ShellContent Route="creation" ContentTemplate="{DataTemplate views:CreationView}" />
@@ -14,9 +86,29 @@
     <ShellContent Route="profile" ContentTemplate="{DataTemplate views:ProfileView}" />
     <ShellContent Route="upgrade" ContentTemplate="{DataTemplate views:Upgrade}" />
 
-    <!-- Tabs -->
-    <TabBar>
+    <!-- ===== FLYOUT (WINDOWS) - agora o menu NÃO fica vazio ===== -->
+    <FlyoutItem Title="Descobrir" Icon="tab_discover.png" Route="discover_flyout">
+        <ShellContent ContentTemplate="{DataTemplate views:DiscoverView}" />
+    </FlyoutItem>
 
+    <FlyoutItem Title="Comunidade" Icon="tab_community.png" Route="community_flyout">
+        <ShellContent ContentTemplate="{DataTemplate views:CommunityView}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Criar" Icon="tab_create.png" Route="creation_flyout">
+        <ShellContent ContentTemplate="{DataTemplate views:CreationView}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Playlist" Icon="tab_playlist.png" Route="playlist_flyout">
+        <ShellContent ContentTemplate="{DataTemplate views:PlaylistView}" />
+    </FlyoutItem>
+
+    <FlyoutItem Title="Perfil" Icon="tab_profile.png" Route="profile_flyout">
+        <ShellContent ContentTemplate="{DataTemplate views:ProfileView}" />
+    </FlyoutItem>
+
+    <!-- ===== TABBAR (ANDROID/iOS/Mac) ===== -->
+    <TabBar>
         <ShellContent
             Title="Descobrir"
             Icon="tab_discover.png"
@@ -41,6 +133,6 @@
             Title="Perfil"
             Icon="tab_profile.png"
             ContentTemplate="{DataTemplate views:ProfileView}" />
-
     </TabBar>
+
 </Shell>

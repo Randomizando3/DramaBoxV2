@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.RewardsView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+
+            <Color x:Key="BgLight">#F4F6FB</Color>
+            <Color x:Key="BgDark">#0B1220</Color>
+
+            <Color x:Key="TextLight">#0F172A</Color>
+            <Color x:Key="TextDark">#E5E7EB</Color>
+
+            <Color x:Key="MutedLight">#64748B</Color>
+            <Color x:Key="MutedDark">#9CA3AF</Color>
+
+            <Color x:Key="BorderLight">#E2E8F0</Color>
+            <Color x:Key="BorderDark">#1F2937</Color>
+
+            <Color x:Key="PrimaryLight">#6A35DF</Color>
+            <Color x:Key="PrimaryDark">#9B7BFF</Color>
+
+            <Style x:Key="H1" TargetType="Label">
+                <Setter Property="FontSize" Value="20"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+            </Style>
+
+            <Style x:Key="Muted" TargetType="Label">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MutedLight}, Dark={StaticResource MutedDark}}"/>
+            </Style>
+
+            <Style x:Key="CardBorder" TargetType="Border">
+                <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"/>
+                <Setter Property="StrokeThickness" Value="1"/>
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=White, Dark=#0F1A2F}"/>
+                <Setter Property="Padding" Value="14"/>
+            </Style>
+
+            <Style x:Key="GhostBtn" TargetType="Button">
+                <Setter Property="FontAttributes" Value="Bold"/>
+                <Setter Property="CornerRadius" Value="14"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}"/>
+                <Setter Property="TextColor" Value="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"/>
+            </Style>
+
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*"
+          BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+        <!-- TOPBAR -->
+        <Grid Grid.Row="0"
+              Padding="12,12,12,10"
+              ColumnDefinitions="Auto,*,Auto"
+              ColumnSpacing="10"
+              BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+            <Border Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                    WidthRequest="44" HeightRequest="44">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <Button Text="←"
+                        FontSize="16"
+                        BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                        Clicked="OnBack"/>
+            </Border>
+
+            <StackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                <Label Text="Recompensas" Style="{StaticResource H1}" />
+                <Label Text="Ganhe coins e troque por VIP" Style="{StaticResource Muted}" />
+            </StackLayout>
+
+            <Border Grid.Column="2"
+                    Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                    StrokeThickness="1"
+                    BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                    WidthRequest="44" HeightRequest="44">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <Button Text="⟳"
+                        FontSize="16"
+                        BackgroundColor="Transparent"
+                        TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                        Clicked="OnRefresh"/>
+            </Border>
+        </Grid>
+
+        <!-- CONTENT -->
+        <ScrollView x:Name="MainScroll" Grid.Row="1">
+            <VerticalStackLayout Padding="12,0,12,16" Spacing="12">
+
+                <!-- WALLET CARD -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="10">
+
+                        <!-- Saldo -->
+                        <StackLayout Grid.Row="0" Grid.Column="0" Spacing="2">
+                            <Label Text="Saldo" Style="{StaticResource Muted}" />
+                            <StackLayout Orientation="Horizontal" Spacing="8">
+                                <Label Text="🪙" FontSize="18" />
+                                <Label x:Name="CoinsLabel"
+                                       Text="0"
+                                       FontSize="28"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}" />
+                                <Label Text="coins"
+                                       VerticalOptions="End"
+                                       Margin="0,0,0,3"
+                                       Style="{StaticResource Muted}" />
+                            </StackLayout>
+                        </StackLayout>
+
+                        <!-- VIP Badge + cart -->
+                        <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,Auto" ColumnSpacing="10" VerticalOptions="Start">
+                            <Border BackgroundColor="{AppThemeBinding Light=#FFF7ED, Dark=#2A1B10}"
+                                    Padding="10,8"
+                                    Stroke="{AppThemeBinding Light=#FED7AA, Dark=#7C2D12}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+
+                                <Grid ColumnDefinitions="Auto,Auto" ColumnSpacing="8">
+                                    <Label Text="⭐"
+                                           FontSize="14"
+                                           VerticalOptions="Center"
+                                           TextColor="{AppThemeBinding Light=#9A3412, Dark=#FDBA74}"/>
+                                    <Label x:Name="VipLabel"
+                                           Grid.Column="1"
+                                           Text="0d"
+                                           FontSize="12"
+                                           FontAttributes="Bold"
+                                           VerticalOptions="Center"
+                                           TextColor="{AppThemeBinding Light=#9A3412, Dark=#FDBA74}" />
+                                </Grid>
+                            </Border>
+
+                            <Border Grid.Column="1"
+                                    Stroke="{AppThemeBinding Light=#1A0F172A, Dark=#1FFFFFFF}"
+                                    StrokeThickness="1"
+                                    BackgroundColor="{AppThemeBinding Light=#0F0F172A, Dark=#14FFFFFF}"
+                                    WidthRequest="44" HeightRequest="44">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Button Text="🛒"
+                                        FontSize="16"
+                                        BackgroundColor="Transparent"
+                                        TextColor="{AppThemeBinding Light=#D90F172A, Dark=#EBFFFFFF}"
+                                        Clicked="OnGoShop"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Texto -->
+                        <Label Grid.Row="1" Grid.ColumnSpan="2"
+                               Margin="0,10,0,0"
+                               Text="Check-in diário é automático ao abrir a tela. Toque nos dias para ver detalhes."
+                               Style="{StaticResource Muted}" />
+                    </Grid>
+                </Border>
+
+                <!-- CHECK-IN (somente visual + tap nos dias) -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <StackLayout Spacing="0">
+                            <Label Text="Check-in diário" FontAttributes="Bold"
+                                   TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                            <Label x:Name="CheckinHint"
+                                   Text="Abrir a tela já conta como check-in do dia."
+                                   Style="{StaticResource Muted}" />
+                        </StackLayout>
+
+                        <!-- 7 dias visíveis (paginação automática 1-7, 8-14, etc) -->
+                        <Grid ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="8">
+
+                            <!-- DAY 1 -->
+                            <Border x:Name="Day1" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="1"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day1Icon" Text="🪙" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day1Text" Text="1" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- DAY 2 -->
+                            <Border x:Name="Day2" Grid.Column="1" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="2"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day2Icon" Text="🪙" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day2Text" Text="2" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- DAY 3 -->
+                            <Border x:Name="Day3" Grid.Column="2" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="3"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day3Icon" Text="🪙" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day3Text" Text="3" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- DAY 4 -->
+                            <Border x:Name="Day4" Grid.Column="3" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="4"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day4Icon" Text="🪙" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day4Text" Text="4" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- DAY 5 -->
+                            <Border x:Name="Day5" Grid.Column="4" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="5"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day5Icon" Text="🪙" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day5Text" Text="5" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- DAY 6 -->
+                            <Border x:Name="Day6" Grid.Column="5" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="6"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day6Icon" Text="🪙" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day6Text" Text="6" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                            <!-- DAY 7 -->
+                            <Border x:Name="Day7" Grid.Column="6" HeightRequest="54" StrokeThickness="0"
+                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="14"/>
+                                </Border.StrokeShape>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnDayTapped" CommandParameter="7"/>
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="2">
+                                    <Label x:Name="Day7Icon" Text="⭐" FontSize="18" HorizontalTextAlignment="Center"/>
+                                    <Label x:Name="Day7Text" Text="7" FontSize="10" FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#1E40AF, Dark=#C7D2FE}"
+                                           HorizontalTextAlignment="Center"/>
+                                </VerticalStackLayout>
+                            </Border>
+
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- MISSÕES -->
+                <Border Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Missões" FontAttributes="Bold"
+                               TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+
+                        <CollectionView x:Name="MissionsList"
+                                        SelectionMode="None"
+                                        ItemSizingStrategy="MeasureAllItems">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B152A}"
+                                            Padding="12">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16"/>
+                                        </Border.StrokeShape>
+
+                                        <Grid ColumnDefinitions="Auto,*,56" ColumnSpacing="10">
+
+                                            <Border WidthRequest="40" HeightRequest="40"
+                                                    BackgroundColor="{AppThemeBinding Light=#EEF2FF, Dark=#111B34}"
+                                                    StrokeThickness="0">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14"/>
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding Icon}"
+                                                       FontSize="18"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"/>
+                                            </Border>
+
+                                            <StackLayout Grid.Column="1" Spacing="3">
+                                                <Label Text="{Binding Title}"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                                                <Label Text="{Binding Subtitle}" Style="{StaticResource Muted}"/>
+
+                                                <StackLayout Orientation="Horizontal" Spacing="6">
+                                                    <Label Text="🪙" FontSize="12"/>
+                                                    <Label Text="{Binding CoinsText}"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{AppThemeBinding Light={StaticResource PrimaryLight}, Dark={StaticResource PrimaryDark}}"/>
+                                                    <Label Text="{Binding TypeText}" Style="{StaticResource Muted}" />
+                                                </StackLayout>
+                                            </StackLayout>
+
+                                            <Border Grid.Column="2"
+                                                    WidthRequest="52"
+                                                    HeightRequest="40"
+                                                    BackgroundColor="{Binding ActionBg}"
+                                                    StrokeThickness="0"
+                                                    VerticalOptions="Center">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14"/>
+                                                </Border.StrokeShape>
+
+                                                <Button Text="👁"
+                                                        FontSize="16"
+                                                        BackgroundColor="Transparent"
+                                                        TextColor="{Binding ActionFg}"
+                                                        Clicked="OnMissionAction"
+                                                        CommandParameter="{Binding Id}"/>
+                                            </Border>
+
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- LOJA -->
+                <Border x:Name="ShopSection" Style="{StaticResource CardBorder}">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <StackLayout>
+                                <Label Text="Loja" FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                                <Label Text="Troque coins por VIP" Style="{StaticResource Muted}" VerticalOptions="Center"/>
+                            </StackLayout>
+                        </Grid>
+
+                        <CollectionView x:Name="ShopList"
+                                        SelectionMode="None"
+                                        ItemSizingStrategy="MeasureAllItems">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="12"/>
+                            </CollectionView.ItemsLayout>
+
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                            StrokeThickness="1"
+                                            BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0B152A}"
+                                            Padding="12">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="16"/>
+                                        </Border.StrokeShape>
+
+                                        <Grid ColumnDefinitions="Auto,*,120" ColumnSpacing="10">
+                                            <Border WidthRequest="40" HeightRequest="40"
+                                                    BackgroundColor="{AppThemeBinding Light=#FFF7ED, Dark=#2A1B10}"
+                                                    StrokeThickness="0">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="14"/>
+                                                </Border.StrokeShape>
+                                                <Label Text="👑"
+                                                       FontSize="18"
+                                                       HorizontalOptions="Center"
+                                                       VerticalOptions="Center"/>
+                                            </Border>
+
+                                            <StackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="{Binding Title}"
+                                                       FontAttributes="Bold"
+                                                       TextColor="{AppThemeBinding Light={StaticResource TextLight}, Dark={StaticResource TextDark}}"/>
+                                                <Label Text="{Binding Subtitle}" Style="{StaticResource Muted}"/>
+                                                <StackLayout Orientation="Horizontal" Spacing="6">
+                                                    <Label Text="🪙" FontSize="12"/>
+                                                    <Label Text="{Binding CostText}"
+                                                           FontSize="12"
+                                                           FontAttributes="Bold"
+                                                           TextColor="{AppThemeBinding Light={StaticResource PrimaryLight}, Dark={StaticResource PrimaryDark}}"/>
+                                                </StackLayout>
+                                            </StackLayout>
+
+                                            <Button Grid.Column="2"
+                                                    Text="Trocar"
+                                                    Style="{StaticResource GhostBtn}"
+                                                    WidthRequest="120"
+                                                    HeightRequest="40"
+                                                    HorizontalOptions="Fill"
+                                                    VerticalOptions="Center"
+                                                    Clicked="OnBuy"
+                                                    CommandParameter="{Binding Id}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+
+                        <Label Text="VIP soma dias no vencimento. Se já tiver VIP ativo, apenas estende."
+                               Style="{StaticResource Muted}"/>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+    </Grid>
+</ContentPage>
