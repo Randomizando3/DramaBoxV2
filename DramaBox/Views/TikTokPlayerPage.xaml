@@ -1,29 +1,37 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="DramaBox.Views.TikTokPlayerPage"
+    x:Name="Page"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:media="clr-namespace:CommunityToolkit.Maui.Views;assembly=CommunityToolkit.Maui.MediaElement"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     Shell.NavBarIsVisible="False"
+    Shell.TabBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
     BackgroundColor="Black">
 
     <Grid>
 
-        <!-- 1) UM ÚNICO PLAYER PARA A PÁGINA TODA -->
-        <media:MediaElement
+        <!-- Player (fundo) -->
+        <!-- IMPORTANTÍSSIMO: InputTransparent=True para não “roubar” swipe/tap no Android -->
+        <toolkit:MediaElement
             x:Name="Player"
+            ZIndex="0"
+            InputTransparent="True"
             Aspect="AspectFill"
             ShouldAutoPlay="False"
             ShouldLoopPlayback="False"
-            ShouldShowPlaybackControls="False" />
+            ShouldShowPlaybackControls="False"
+            MediaEnded="OnMediaEnded" />
 
-        <!-- 2) CAROUSEL SÓ PARA O SWIPE / POSIÇÃO (SEM PLAYER DENTRO) -->
+        <!-- Swipe vertical (fila/posição) -->
         <CarouselView x:Name="Feed"
+                      ZIndex="1"
                       ItemsSource="{Binding Items}"
                       IsSwipeEnabled="True"
                       Loop="False"
                       CurrentItemChanged="OnCurrentItemChanged">
+
             <CarouselView.ItemsLayout>
                 <LinearItemsLayout Orientation="Vertical"
                                    SnapPointsType="MandatorySingle" />
@@ -31,16 +39,38 @@
 
             <CarouselView.ItemTemplate>
                 <DataTemplate>
-                    <!-- Transparente: o vídeo está no Player global -->
-                    <Grid BackgroundColor="Transparent" />
+                    <!-- Quase transparente para garantir hit-test/swipe no Android -->
+                    <Grid BackgroundColor="#01000000" />
                 </DataTemplate>
             </CarouselView.ItemTemplate>
+
+            <!-- Tap play/pause + Pan para swipe (fallback robusto) -->
+            <CarouselView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnScreenTapped" NumberOfTapsRequired="1"/>
+                <PanGestureRecognizer PanUpdated="OnPanUpdated"/>
+            </CarouselView.GestureRecognizers>
         </CarouselView>
 
-        <!-- Overlay inferior esquerdo -->
-        <Grid Padding="16"
+        <!-- Gradiente inferior (legibilidade) -->
+        <Grid ZIndex="2"
               VerticalOptions="End"
-              HorizontalOptions="Start">
+              HeightRequest="220"
+              InputTransparent="True">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                    <GradientStop Color="#D1000000" Offset="0" />
+                    <GradientStop Color="#52000000" Offset="0.55" />
+                    <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+            </Grid.Background>
+        </Grid>
+
+        <!-- Overlay infos (inferior esquerdo) -->
+        <Grid ZIndex="3"
+              Padding="16"
+              VerticalOptions="End"
+              HorizontalOptions="Start"
+              InputTransparent="True">
             <VerticalStackLayout Spacing="6">
                 <Label Text="{Binding Current.CreatorName}"
                        TextColor="White"
@@ -56,49 +86,99 @@
             </VerticalStackLayout>
         </Grid>
 
-        <!-- Botões flutuantes direita -->
-        <Grid Padding="14"
+        <!-- Botões direita (aparecem só quando PAUSADO) -->
+        <Grid ZIndex="4"
+              Padding="14"
               VerticalOptions="Center"
-              HorizontalOptions="End">
+              HorizontalOptions="End"
+              IsVisible="{Binding IsOverlayVisible}">
             <VerticalStackLayout Spacing="14">
 
-                <Button Text="♥"
-                        WidthRequest="52"
-                        HeightRequest="52"
-                        CornerRadius="26"
-                        BackgroundColor="#cccccc"
-                        TextColor="White"
-                        Clicked="OnLikeClicked"/>
+                <Border Stroke="#26FFFFFF"
+                        StrokeThickness="1"
+                        BackgroundColor="#26000000"
+                        WidthRequest="56"
+                        HeightRequest="56">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+                    <Button BackgroundColor="Transparent"
+                            Clicked="OnLikeClicked"
+                            Text="❤"
+                            TextColor="#E5E7EB"
+                            FontSize="18"/>
+                </Border>
 
-                <Button Text="⤴"
-                        WidthRequest="52"
-                        HeightRequest="52"
-                        CornerRadius="26"
-                        BackgroundColor="#cccccc"
-                        TextColor="White"
-                        Clicked="OnShareClicked"/>
+                <Border Stroke="#26FFFFFF"
+                        StrokeThickness="1"
+                        BackgroundColor="#26000000"
+                        WidthRequest="56"
+                        HeightRequest="56">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+                    <Button BackgroundColor="Transparent"
+                            Clicked="OnShareClicked"
+                            Text="⤴"
+                            TextColor="#E5E7EB"
+                            FontSize="18"/>
+                </Border>
 
-                <Button Text="+"
-                        WidthRequest="52"
-                        HeightRequest="52"
-                        CornerRadius="26"
-                        BackgroundColor="#cccccc"
-                        TextColor="White"
-                        Clicked="OnPlaylistClicked"/>
+                <Border Stroke="#26FFFFFF"
+                        StrokeThickness="1"
+                        BackgroundColor="#26000000"
+                        WidthRequest="56"
+                        HeightRequest="56">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+                    <Button BackgroundColor="Transparent"
+                            Clicked="OnPlaylistClicked"
+                            Text="＋"
+                            TextColor="#E5E7EB"
+                            FontSize="18"/>
+                </Border>
+
+                <Border Stroke="#26FFFFFF"
+                        StrokeThickness="1"
+                        BackgroundColor="#2A111827"
+                        WidthRequest="56"
+                        HeightRequest="56">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="18"/>
+                    </Border.StrokeShape>
+                    <Button BackgroundColor="Transparent"
+                            Clicked="OnNextClicked"
+                            Text="⏭"
+                            TextColor="#E5E7EB"
+                            FontSize="18"/>
+                </Border>
 
             </VerticalStackLayout>
         </Grid>
 
-        <!-- Top bar -->
-        <Grid Padding="14"
+        <!-- Topbar -->
+        <Grid ZIndex="5"
+              Padding="14"
               VerticalOptions="Start"
               HorizontalOptions="Fill"
               ColumnDefinitions="Auto,*,Auto">
 
-            <Button Text="←"
-                    BackgroundColor="#cccccc"
-                    TextColor="white"
-                    Clicked="OnBackClicked" />
+            <Border Stroke="#26FFFFFF"
+                    StrokeThickness="1"
+                    BackgroundColor="#26000000"
+                    WidthRequest="48"
+                    HeightRequest="48">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16"/>
+                </Border.StrokeShape>
+                <Button Text="←"
+                        Clicked="OnBackClicked"
+                        BackgroundColor="Transparent"
+                        TextColor="#cccccc"
+                        FontSize="18"
+                        FontAttributes="Bold"/>
+            </Border>
 
             <Label Grid.Column="1"
                    Text="Player"
@@ -107,16 +187,23 @@
                    TextColor="White"
                    FontAttributes="Bold"/>
 
-            <Button Grid.Column="2"
-                    Text="⋯"
-                    BackgroundColor="#cccccc"
-                    TextColor="White" />
+            <Border Grid.Column="2"
+                    Stroke="#26FFFFFF"
+                    StrokeThickness="1"
+                    BackgroundColor="#26000000"
+                    WidthRequest="48"
+                    HeightRequest="48"
+                    Opacity="0.9">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16"/>
+                </Border.StrokeShape>
+                <Label Text="⋯"
+                       FontSize="22"
+                       TextColor="#E5E7EB"
+                       HorizontalTextAlignment="Center"
+                       VerticalTextAlignment="Center"/>
+            </Border>
         </Grid>
-
-        <!-- Tap na tela: play/pause -->
-        <Grid.GestureRecognizers>
-            <TapGestureRecognizer Tapped="OnScreenTapped" NumberOfTapsRequired="1" />
-        </Grid.GestureRecognizers>
 
     </Grid>
 </ContentPage>

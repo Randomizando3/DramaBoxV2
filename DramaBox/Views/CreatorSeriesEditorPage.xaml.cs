@@ -214,7 +214,7 @@ public partial class CreatorSeriesEditorPage : ContentPage
 
     private async void OnPlaySeriesClicked(object sender, EventArgs e)
     {
-        // usa seu player da comunidade
-        await Navigation.PushAsync(new TikTokPlayerPage(mode: "series", seriesId: _seriesId));
+        // abre a fila da SÉRIE (swipe sobe = próximo episódio dessa série)
+        await Navigation.PushAsync(new TikTokPlayerPage(seriesId: _seriesId));
     }
 }

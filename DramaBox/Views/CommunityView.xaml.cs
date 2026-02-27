@@ -1,8 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
-using DramaBox.Models;
 using DramaBox.Services;
 using Microsoft.Maui.Controls;
 
@@ -68,7 +68,7 @@ public partial class CommunityView : ContentPage
             {
                 var cover = string.IsNullOrWhiteSpace(s.CoverUrl) ? (s.PosterUrl ?? "") : s.CoverUrl;
 
-                // ? Like é na SÉRIE
+                // Like é na SÉRIE
                 var liked = false;
                 if (!string.IsNullOrWhiteSpace(uid) && !string.IsNullOrWhiteSpace(s.Id))
                     liked = (await _db.GetAsync<bool?>($"community/interactions/likes/{uid}/{s.Id}", token)) == true;
@@ -118,8 +118,9 @@ public partial class CommunityView : ContentPage
         await LoadFeedAsync();
     }
 
+    // ? Random abre fila aleatória (TikTok)
     private async void OnRandomClicked(object sender, EventArgs e)
-        => await Navigation.PushAsync(new TikTokPlayerPage(mode: "random"));
+        => await Navigation.PushAsync(new TikTokPlayerPage(true));
 
     // =========================
     // AÇÕES DO CARD
@@ -133,7 +134,8 @@ public partial class CommunityView : ContentPage
         if (row == null) return;
         if (string.IsNullOrWhiteSpace(row.SeriesId)) return;
 
-        await Navigation.PushAsync(new TikTokPlayerPage(mode: "series", seriesId: row.SeriesId));
+        // ? Série => fila de episódios da própria série (swipe up = próximo ep)
+        await Navigation.PushAsync(new TikTokPlayerPage(seriesId: row.SeriesId, startEpisodeId: ""));
     }
 
     private async void OnPlaySeriesClicked(object sender, EventArgs e)
@@ -148,7 +150,7 @@ public partial class CommunityView : ContentPage
         await PlayRowAsync(row);
     }
 
-    // ? Tap no Grid do Like (XAML)
+    // Tap no Like (Grid do XAML)
     private async void OnLikeSeriesTapped(object sender, EventArgs e)
     {
         var row = RowFromSender(sender);
@@ -180,7 +182,7 @@ public partial class CommunityView : ContentPage
         row.IsLiked = nowLiked;
     }
 
-    // ? Tap no Grid do Share (XAML)
+    // Tap no Share (Grid do XAML)
     private async void OnShareSeriesTapped(object sender, EventArgs e)
     {
         var row = RowFromSender(sender);
