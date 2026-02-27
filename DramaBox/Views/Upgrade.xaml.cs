@@ -20,13 +20,21 @@ public partial class Upgrade : ContentPage
 
         _session = Resolve<SessionService>() ?? new SessionService();
         _db = Resolve<FirebaseDatabaseService>() ?? CreateDbFallback();
+
+        // UI: preço vindo do UserPlanInfo
+        if (PremiumPriceLabel != null)
+            PremiumPriceLabel.Text = UserPlanInfo.PremiumPriceLabel;
     }
 
     public Upgrade(SessionService session, FirebaseDatabaseService db)
     {
         InitializeComponent();
+
         _session = session;
         _db = db;
+
+        if (PremiumPriceLabel != null)
+            PremiumPriceLabel.Text = UserPlanInfo.PremiumPriceLabel;
     }
 
     protected override async void OnAppearing()
@@ -82,7 +90,7 @@ public partial class Upgrade : ContentPage
             await _db.UpsertUserProfileAsync(uid, _profile, token);
         }
 
-        // ? garante consistência (se premium expirou, volta free; se premium válido, mantém)
+        // garante consistência (se premium expirou, volta free; se premium válido, mantém)
         await _db.EnsurePremiumConsistencyAsync(uid, token);
 
         _profile = await _db.GetUserProfileAsync(uid, token);
@@ -90,18 +98,22 @@ public partial class Upgrade : ContentPage
     }
 
     private async void OnBackClicked(object sender, EventArgs e)
-    {
-        await Navigation.PopAsync();
-    }
+        => await Navigation.PopAsync();
 
     private async void OnSelectFreeClicked(object sender, EventArgs e)
-    {
-        await SetPlanAsync("free");
-    }
+        => await SetPlanAsync("free");
 
     private async void OnSelectPremiumClicked(object sender, EventArgs e)
     {
-        var ok = await DisplayAlert("Premium", "Selecionar Premium por 30 dias? (mock, sem pagamento)", "Sim", "Cancelar");
+        var price = UserPlanInfo.PremiumPriceLabel;
+
+        var ok = await DisplayAlert(
+            "Premium",
+            $"Selecionar Premium por 30 dias? (mock, sem pagamento)\n\nValor: {price}\n\nBenefícios:\n• Receitas ao adicionar drama\n• Dramas no topo\n• Status diferenciado\n• Sorteios semanais/mensais\n• Salvar na playlist",
+            "Sim",
+            "Cancelar"
+        );
+
         if (!ok) return;
 
         await SetPlanAsync("premium");
@@ -120,7 +132,7 @@ public partial class Upgrade : ContentPage
             plan = (plan ?? "").Trim().ToLowerInvariant();
             if (plan != "free" && plan != "premium") plan = "free";
 
-            // ? regra:
+            // regra:
             // - free: PremiumUntilUnix = 0
             // - premium: PremiumUntilUnix = now + 30 dias
             long premiumUntil = 0;
@@ -149,7 +161,7 @@ public partial class Upgrade : ContentPage
             _session.SetProfile(_profile);
 
             await DisplayAlert("Planos", plan == "premium"
-                ? "Premium ativado por 30 dias!"
+                ? $"Premium ativado por 30 dias! ({UserPlanInfo.PremiumPriceLabel})"
                 : "Plano atualizado para Free.", "OK");
         }
         catch (Exception ex)

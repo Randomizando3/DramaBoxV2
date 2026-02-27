@@ -15,12 +15,24 @@
 
         <!-- Topo -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" VerticalOptions="Center">
-            <Button Text="←"
-                    BackgroundColor="Transparent"
+
+            <!-- Back (back.png / backwhite.png) -->
+            <Border StrokeThickness="1"
                     WidthRequest="44"
                     HeightRequest="44"
-                    CornerRadius="14"
-                    Clicked="OnBackClicked"/>
+                    BackgroundColor="{AppThemeBinding Light=#0F000000, Dark=#55000000}"
+                    Stroke="{AppThemeBinding Light=#1A000000, Dark=#26FFFFFF}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14"/>
+                </Border.StrokeShape>
+
+                <ImageButton Source="{AppThemeBinding Light=back.png, Dark=backwhite.png}"
+                             BackgroundColor="Transparent"
+                             WidthRequest="44"
+                             HeightRequest="44"
+                             Padding="10"
+                             Clicked="OnBackClicked"/>
+            </Border>
 
             <Label Grid.Column="1"
                    Text="Planos"
@@ -49,7 +61,7 @@
 
                         <Label Text="• Acesso básico ao app"
                                Style="{StaticResource MutedLabelStyle}" />
-                        <Label Text="• Sem benefícios premium (por enquanto)"
+                        <Label Text="• Sem benefícios premium"
                                Style="{StaticResource MutedLabelStyle}" />
 
                         <Button Text="Selecionar Free"
@@ -61,15 +73,50 @@
                 <!-- PREMIUM -->
                 <Border x:Name="PremiumCard" Style="{StaticResource CardBorderStyle}">
                     <VerticalStackLayout Spacing="10">
-                        <Label Text="Premium"
+
+                        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                            <Label Text="Premium"
+                                   FontAttributes="Bold"
+                                   FontSize="18"/>
+
+                            <!-- preço -->
+                            <Border Grid.Column="1"
+                                    StrokeThickness="0"
+                                    Padding="10,6"
+                                    HorizontalOptions="End">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="12"/>
+                                </Border.StrokeShape>
+                                <Border.Background>
+                                    <AppThemeBinding Light="#14000000" Dark="#26FFFFFF"/>
+                                </Border.Background>
+                                <Label x:Name="PremiumPriceLabel"
+                                       Text="R$ 29,90/mês"
+                                       FontAttributes="Bold"
+                                       FontSize="12"
+                                       TextColor="{AppThemeBinding Light=#111827, Dark=White}"/>
+                            </Border>
+                        </Grid>
+
+                        <Label Text="Benefícios do Premium:"
                                FontAttributes="Bold"
-                               FontSize="18"/>
+                               FontSize="13"
+                               TextColor="{StaticResource AppMutedTextColor}"/>
 
-                        <Label Text="• Benefícios premium (em construção)"
-                               Style="{StaticResource MutedLabelStyle}" />
-                        <Label Text="• Experiência completa"
-                               Style="{StaticResource MutedLabelStyle}" />
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="• Acesso ao programa de receitas ao adicionar um drama"
+                                   Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="• Dramas em destaque no topo"
+                                   Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="• Status diferenciado no perfil"
+                                   Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="• Participação em sorteios semanais e mensais"
+                                   Style="{StaticResource MutedLabelStyle}" />
+                            <Label Text="• Salvar dramas na playlist"
+                                   Style="{StaticResource MutedLabelStyle}" />
+                        </VerticalStackLayout>
 
+                        <!-- Botão premium (gradiente) -->
                         <Border StrokeThickness="0">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="14"/>
@@ -92,11 +139,17 @@
                                 </LinearGradientBrush>
                             </Border.Background>
 
-                            <Button Text="Selecionar Premium"
+                            <Button x:Name="SelectPremiumButton"
+                                    Text="Selecionar Premium"
                                     Style="{StaticResource GradientButtonStyle}"
                                     BackgroundColor="Transparent"
                                     Clicked="OnSelectPremiumClicked"/>
                         </Border>
+
+                        <Label Text="* Valor exibido como referência (mock)."
+                               FontSize="11"
+                               Opacity="0.7"
+                               TextColor="{StaticResource AppMutedTextColor}"/>
                     </VerticalStackLayout>
                 </Border>
 

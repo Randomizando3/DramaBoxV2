@@ -18,13 +18,24 @@
             <Label Text="Playlist"
                    Style="{StaticResource TitleLargeLabelStyle}" />
 
-            <Button Grid.Column="1"
-                    Text="⟳"
-                    BackgroundColor="Transparent"
+            <!-- Refresh por ícone (se não tiver refresh.png, me diga qual ícone usar aqui) -->
+            <Border Grid.Column="1"
+                    StrokeThickness="1"
                     WidthRequest="44"
                     HeightRequest="44"
-                    CornerRadius="14"
-                    Clicked="OnRefreshClicked"/>
+                    BackgroundColor="{AppThemeBinding Light=#0F000000, Dark=#55000000}"
+                    Stroke="{AppThemeBinding Light=#1A000000, Dark=#26FFFFFF}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="14"/>
+                </Border.StrokeShape>
+
+                <ImageButton Source="{AppThemeBinding Light=refresh.png, Dark=refreshwhite.png}"
+                             BackgroundColor="Transparent"
+                             WidthRequest="44"
+                             HeightRequest="44"
+                             Padding="10"
+                             Clicked="OnRefreshClicked"/>
+            </Border>
         </Grid>
 
         <ScrollView Grid.Row="1">
@@ -70,12 +81,27 @@
                                                 <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
                                                     <Label Text="{Binding EpisodeNumber, StringFormat='Ep. {0}'}"
                                                            FontSize="12"
-                                                           TextColor="{StaticResource AppMutedTextColor}" />
+                                                           TextColor="{StaticResource AppMutedTextColor}"
+                                                           VerticalTextAlignment="Center"/>
 
-                                                    <Button Grid.Column="1"
-                                                            Text="▶"
-                                                            BackgroundColor="Transparent"
-                                                            Clicked="OnContinuePlayClicked"/>
+                                                    <!-- PLAY (claro/escuro) -->
+                                                    <Border Grid.Column="1"
+                                                            StrokeThickness="1"
+                                                            WidthRequest="40"
+                                                            HeightRequest="40"
+                                                            BackgroundColor="{AppThemeBinding Light=#14000000, Dark=#55000000}"
+                                                            Stroke="{AppThemeBinding Light=#1A000000, Dark=#26FFFFFF}">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="12"/>
+                                                        </Border.StrokeShape>
+
+                                                        <ImageButton Source="{AppThemeBinding Light=play.png, Dark=playwhite.png}"
+                                                                     BackgroundColor="Transparent"
+                                                                     WidthRequest="40"
+                                                                     HeightRequest="40"
+                                                                     Padding="9"
+                                                                     Clicked="OnContinuePlayClicked"/>
+                                                    </Border>
                                                 </Grid>
                                             </VerticalStackLayout>
 
@@ -131,21 +157,54 @@
                                                        TextColor="{StaticResource AppMutedTextColor}"
                                                        LineBreakMode="TailTruncation"/>
 
-                                                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0" ColumnSpacing="8">
-                                                    <Button Text="Abrir"
-                                                            BackgroundColor="Transparent"
-                                                            Clicked="OnOpenSavedClicked"/>
+                                                <!-- Ações: só ícones (igual Community) -->
+                                                <Grid ColumnDefinitions="Auto,Auto,*" Margin="0,8,0,0" ColumnSpacing="10"
+                                                      VerticalOptions="Center">
 
-                                                    <Button Grid.Column="1"
-                                                            Text="Remover"
-                                                            BackgroundColor="Transparent"
-                                                            TextColor="{StaticResource AppMutedTextColor}"
-                                                            Clicked="OnRemoveSavedClicked"/>
+                                                    <!-- ABRIR (play claro/escuro) -->
+                                                    <Border StrokeThickness="1"
+                                                            WidthRequest="44"
+                                                            HeightRequest="44"
+                                                            BackgroundColor="{AppThemeBinding Light=#14000000, Dark=#55000000}"
+                                                            Stroke="{AppThemeBinding Light=#1A000000, Dark=#26FFFFFF}">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="12"/>
+                                                        </Border.StrokeShape>
 
+                                                        <ImageButton Source="{AppThemeBinding Light=play.png, Dark=playwhite.png}"
+                                                                     BackgroundColor="Transparent"
+                                                                     WidthRequest="44"
+                                                                     HeightRequest="44"
+                                                                     Padding="11"
+                                                                     Clicked="OnOpenSavedClicked"/>
+                                                    </Border>
+
+                                                    <!-- REMOVER (remove.png sempre) -->
+                                                    <Border Grid.Column="1"
+                                                            StrokeThickness="1"
+                                                            WidthRequest="44"
+                                                            HeightRequest="44"
+                                                            BackgroundColor="{AppThemeBinding Light=#14000000, Dark=#55000000}"
+                                                            Stroke="{AppThemeBinding Light=#1A000000, Dark=#26FFFFFF}">
+                                                        <Border.StrokeShape>
+                                                            <RoundRectangle CornerRadius="12"/>
+                                                        </Border.StrokeShape>
+
+                                                        <ImageButton Source="remove.png"
+                                                                     BackgroundColor="Transparent"
+                                                                     WidthRequest="44"
+                                                                     HeightRequest="44"
+                                                                     Padding="11"
+                                                                     Clicked="OnRemoveSavedClicked"/>
+                                                    </Border>
+
+                                                    <!-- (opcional) estrela/marcador à direita -->
                                                     <Label Grid.Column="2"
                                                            Text="★"
                                                            TextColor="{StaticResource AppMutedTextColor}"
-                                                           VerticalTextAlignment="Center"/>
+                                                           VerticalTextAlignment="Center"
+                                                           HorizontalTextAlignment="End"
+                                                           Opacity="0.75"/>
                                                 </Grid>
                                             </VerticalStackLayout>
 

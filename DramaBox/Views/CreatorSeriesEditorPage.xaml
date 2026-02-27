@@ -3,6 +3,7 @@
     x:Class="DramaBox.Views.CreatorSeriesEditorPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
     BackgroundColor="{StaticResource AppBackgroundColor}">
@@ -10,89 +11,230 @@
     <Grid Padding="18" RowSpacing="12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Top -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
-            <Button Text="←" BackgroundColor="Transparent" Clicked="OnBackClicked" WidthRequest="44" HeightRequest="44"/>
-            <Label Grid.Column="1" x:Name="TitleLabel" Style="{StaticResource TitleLargeLabelStyle}" LineBreakMode="TailTruncation"/>
-            <Button Grid.Column="2" Text="⟳" BackgroundColor="Transparent" Clicked="OnRefreshClicked" WidthRequest="44" HeightRequest="44"/>
-        </Grid>
+        <!-- =========================
+             TOP + UPLOAD PROGRESS
+             ========================= -->
+        <VerticalStackLayout Grid.Row="0" Spacing="10">
 
-        <!-- Cover -->
-        <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="0">
-            <Grid>
-                <Image x:Name="CoverImage" Aspect="AspectFill" HeightRequest="220"/>
-                <Button Text="Trocar capa"
-                        HorizontalOptions="End"
-                        VerticalOptions="End"
-                        Margin="12"
-                        Padding="12,8"
-                        CornerRadius="14"
-                        BackgroundColor="#CC000000"
-                        TextColor="White"
-                        Clicked="OnChangeCoverClicked"/>
+            <!-- Top bar -->
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                <ImageButton
+                    Source="{AppThemeBinding Light='back.png', Dark='backwhite.png'}"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    Padding="8"
+                    Clicked="OnBackClicked" />
+
+                <Label
+                    Grid.Column="1"
+                    x:Name="TitleLabel"
+                    Style="{StaticResource TitleLargeLabelStyle}"
+                    LineBreakMode="TailTruncation"
+                    VerticalTextAlignment="Center" />
+
+                <ImageButton
+                    Grid.Column="2"
+                    Source="{AppThemeBinding Light='refresh.png', Dark='refreshwhite.png'}"
+                    BackgroundColor="Transparent"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    Padding="8"
+                    Clicked="OnRefreshClicked" />
             </Grid>
-        </Border>
 
-        <!-- Actions -->
-        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Button Text="Adicionar episódio"
-                        BackgroundColor="{StaticResource AppPrimaryColor}"
-                        TextColor="White"
-                        CornerRadius="14"
-                        Clicked="OnAddEpisodeClicked"/>
-
-                <Button Grid.Column="1"
-                        Text="Ver no player"
-                        BackgroundColor="Transparent"
-                        CornerRadius="14"
-                        Clicked="OnPlaySeriesClicked"/>
+            <!-- Upload progress (top) -->
+            <Grid x:Name="UploadTopBar" IsVisible="False" ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <ActivityIndicator IsRunning="True" WidthRequest="18" HeightRequest="18" VerticalOptions="Center"/>
+                <VerticalStackLayout Grid.Column="1" Spacing="6">
+                    <Label x:Name="UploadText"
+                           Text="Enviando..."
+                           FontSize="12"
+                           TextColor="{StaticResource AppMutedTextColor}"/>
+                    <ProgressBar x:Name="UploadProgress" Progress="0" />
+                </VerticalStackLayout>
             </Grid>
-        </Border>
 
-        <!-- Episodes -->
-        <CollectionView Grid.Row="3"
-                        x:Name="EpisodesList"
-                        SelectionMode="None">
-            <CollectionView.EmptyView>
-                <Border Style="{StaticResource CardBorderStyle}" Padding="14">
+        </VerticalStackLayout>
+
+        <!-- =========================
+             SCROLL GERAL
+             ========================= -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="12">
+
+                <!-- Cover -->
+                <Border Style="{StaticResource CardBorderStyle}" Padding="0">
+                    <Grid>
+                        <Image x:Name="CoverImage" Aspect="AspectFill" HeightRequest="220"/>
+
+                        <Button Text="Trocar capa"
+                                HorizontalOptions="End"
+                                VerticalOptions="End"
+                                Margin="12"
+                                Padding="12,8"
+                                CornerRadius="14"
+                                BackgroundColor="#CC000000"
+                                TextColor="White"
+                                Clicked="OnChangeCoverClicked"/>
+                    </Grid>
+                </Border>
+
+                <!-- Actions -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+
+                    <Button Text="Adicionar episódio"
+                            BackgroundColor="{StaticResource AppPrimaryColor}"
+                            TextColor="White"
+                            CornerRadius="14"
+                            Clicked="OnAddEpisodeClicked"/>
+
+                    <!-- Player (apenas ícone) -->
+                    <Border Grid.Column="1"
+                            StrokeThickness="0"
+                            BackgroundColor="Transparent">
+                        <ImageButton
+                            Source="{AppThemeBinding Light='play.png', Dark='playwhite.png'}"
+                            BackgroundColor="Transparent"
+                            WidthRequest="54"
+                            HeightRequest="54"
+                            Padding="10"
+                            CornerRadius="16"
+                            Clicked="OnPlaySeriesClicked"/>
+                    </Border>
+
+                </Grid>
+
+                <Label Text="Episódios"
+                       Style="{StaticResource TitleMediumLabelStyle}" />
+
+                <!-- Empty -->
+                <Border x:Name="EmptyBox" Style="{StaticResource CardBorderStyle}" Padding="14" IsVisible="False">
                     <Label Text="Sem episódios ainda. Clique em “Adicionar episódio”."
                            Style="{StaticResource MutedLabelStyle}"
                            HorizontalTextAlignment="Center"/>
                 </Border>
-            </CollectionView.EmptyView>
 
-            <CollectionView.ItemTemplate>
-                <DataTemplate>
-                    <Border Style="{StaticResource CardBorderStyle}" Padding="12" Margin="0,0,0,12">
-                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
-                            <Border StrokeThickness="0" Padding="10,6">
-                                <Border.StrokeShape>
-                                    <RoundRectangle CornerRadius="14"/>
-                                </Border.StrokeShape>
-                                <Border.Background>
-                                    <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
-                                                     Dark="{StaticResource DarkSurfaceSecondaryColor}"/>
-                                </Border.Background>
-                                <Label Text="{Binding Number}" FontAttributes="Bold"/>
+                <!-- Episodes list (sem scroll interno; segue o ScrollView geral) -->
+                <VerticalStackLayout x:Name="EpisodesStack"
+                                     Spacing="10"
+                                     BindableLayout.ItemsSource="{Binding Episodes}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardBorderStyle}" Padding="12">
+                                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+
+                                    <!-- Number -->
+                                    <Border StrokeThickness="0" Padding="10,6" VerticalOptions="Start">
+                                        <Border.Background>
+                                            <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
+                                                             Dark="{StaticResource DarkSurfaceSecondaryColor}"/>
+                                        </Border.Background>
+                                        <Label Text="{Binding Number}" FontAttributes="Bold"/>
+                                    </Border>
+
+                                    <!-- Title + url -->
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                        <Label Text="{Binding VideoUrl}"
+                                               FontSize="11"
+                                               LineBreakMode="TailTruncation"
+                                               TextColor="{StaticResource AppMutedTextColor}"/>
+                                    </VerticalStackLayout>
+
+                                    <!-- Edit -->
+                                    <ImageButton Grid.Column="2"
+                                                 Source="{AppThemeBinding Light='edit.png', Dark='editwhite.png'}"
+                                                 BackgroundColor="Transparent"
+                                                 WidthRequest="42"
+                                                 HeightRequest="42"
+                                                 Padding="8"
+                                                 CornerRadius="14"
+                                                 Clicked="OnEditEpisodeClicked"
+                                                 CommandParameter="{Binding .}"/>
+
+                                    <!-- Remove -->
+                                    <ImageButton Grid.Column="3"
+                                                 Source="remove.png"
+                                                 BackgroundColor="Transparent"
+                                                 WidthRequest="42"
+                                                 HeightRequest="42"
+                                                 Padding="8"
+                                                 CornerRadius="14"
+                                                 Clicked="OnRemoveEpisodeClicked"
+                                                 CommandParameter="{Binding .}"/>
+
+                                    <!-- Preview line -->
+                                    <Grid Grid.Row="1" Grid.ColumnSpan="4" Margin="0,10,0,0"
+                                          ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                        <ImageButton
+                                            Source="{AppThemeBinding Light='play.png', Dark='playwhite.png'}"
+                                            BackgroundColor="Transparent"
+                                            WidthRequest="42"
+                                            HeightRequest="42"
+                                            Padding="8"
+                                            CornerRadius="14"
+                                            Clicked="OnPreviewEpisodeClicked"
+                                            CommandParameter="{Binding .}"/>
+                                        <Label Grid.Column="1"
+                                               Text="Prévia"
+                                               VerticalTextAlignment="Center"
+                                               TextColor="{StaticResource AppMutedTextColor}"/>
+                                    </Grid>
+
+                                </Grid>
                             </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
 
-                            <VerticalStackLayout Grid.Column="1" Spacing="4">
-                                <Label Text="{Binding Title}" FontAttributes="Bold"/>
-                                <Label Text="{Binding VideoUrl}" FontSize="11"
-                                       LineBreakMode="TailTruncation"
-                                       TextColor="{StaticResource AppMutedTextColor}"/>
-                            </VerticalStackLayout>
-                        </Grid>
-                    </Border>
-                </DataTemplate>
-            </CollectionView.ItemTemplate>
-        </CollectionView>
+                <BoxView HeightRequest="10" Opacity="0"/>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- =========================
+             MODAL PREVIEW (FULLSCREEN)
+             ========================= -->
+        <Grid x:Name="PreviewOverlay"
+              Grid.RowSpan="2"
+              IsVisible="False"
+              BackgroundColor="Black"
+              InputTransparent="False">
+
+            <!-- Top bar do modal -->
+            <Grid Padding="14"
+                  ColumnDefinitions="*,Auto"
+                  VerticalOptions="Start"
+                  ZIndex="2">
+                <Label x:Name="PreviewTitle"
+                       Text="Prévia"
+                       FontAttributes="Bold"
+                       FontSize="16"
+                       TextColor="White"
+                       LineBreakMode="TailTruncation"
+                       VerticalTextAlignment="Center" />
+
+                <Button Grid.Column="1"
+                        Text="Fechar"
+                        CornerRadius="14"
+                        BackgroundColor="#2A2A2A"
+                        TextColor="White"
+                        Clicked="OnClosePreviewClicked"/>
+            </Grid>
+
+            <!-- Player FULL -->
+            <toolkit:MediaElement x:Name="PreviewPlayer"
+                                  Margin="0,56,0,0"
+                                  ShouldAutoPlay="True"
+                                  ShouldShowPlaybackControls="True"
+                                  Aspect="AspectFit"
+                                  HorizontalOptions="Fill"
+                                  VerticalOptions="Fill"/>
+        </Grid>
 
     </Grid>
 </ContentPage>
