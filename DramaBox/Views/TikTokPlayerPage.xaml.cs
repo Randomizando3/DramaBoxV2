@@ -17,7 +17,7 @@ public partial class TikTokPlayerPage : ContentPage
     private readonly FirebaseDatabaseService _db;
     private readonly CommunityService _community;
 
-    // modos suportados: "feed" (já pronto), "series", "random"
+    // modos suportados: "feed", "series", "random"
     private readonly string _mode;
     private readonly string _seriesId;
 
@@ -36,6 +36,9 @@ public partial class TikTokPlayerPage : ContentPage
             if (_current == value) return;
             _current = value;
             OnPropertyChanged(nameof(Current));
+
+            // Sempre que muda o item, recarrega estados (like/saved)
+            _ = RefreshInteractionStatesAsync();
         }
     }
 
@@ -54,12 +57,40 @@ public partial class TikTokPlayerPage : ContentPage
 
     private bool _isPlaying;
 
+    // ===== UI state (persistidos via consulta RTDB) =====
+    private bool _currentIsLiked;
+    public bool CurrentIsLiked
+    {
+        get => _currentIsLiked;
+        set
+        {
+            if (_currentIsLiked == value) return;
+            _currentIsLiked = value;
+            OnPropertyChanged(nameof(CurrentIsLiked));
+        }
+    }
+
+    private bool _currentIsSaved;
+    public bool CurrentIsSaved
+    {
+        get => _currentIsSaved;
+        set
+        {
+            if (_currentIsSaved == value) return;
+            _currentIsSaved = value;
+            OnPropertyChanged(nameof(CurrentIsSaved));
+        }
+    }
+
+    // Evita corrida: troca de item enquanto consulta ainda está rodando
+    private int _interactionFetchSeq;
+
     // ===== Gesture tracking =====
     private double _panTotalY;
     private bool _panConsumed;
     private DateTime _lastGestureAt = DateTime.MinValue;
 
-    // ===== Tap debounce (evita “tap perdido / duplo”) =====
+    // ===== Tap debounce =====
     private bool _tapBusy;
 
     // ===== Random infinite queue =====
@@ -180,6 +211,10 @@ public partial class TikTokPlayerPage : ContentPage
         IsOverlayVisible = false;
         _isPlaying = false;
 
+        // reseta UI states até carregar
+        CurrentIsLiked = false;
+        CurrentIsSaved = false;
+
         if (_mode == "series")
         {
             await LoadSeriesAsync();
@@ -204,6 +239,8 @@ public partial class TikTokPlayerPage : ContentPage
         {
             if (Items.Count > 0 && Current == null)
                 StartAtEpisodeIfAny();
+            else
+                _ = RefreshInteractionStatesAsync(); // garante estado ao reabrir
         }
     }
 
@@ -238,6 +275,61 @@ public partial class TikTokPlayerPage : ContentPage
         PlayCurrent();
 
         _ = EnsureInfiniteRandomAsync();
+    }
+
+    // =========================
+    // Consultas de estado (LIKE + SALVO)
+    // =========================
+    private async Task RefreshInteractionStatesAsync()
+    {
+        var seq = ++_interactionFetchSeq;
+
+        try
+        {
+            var it = Current;
+            if (it == null)
+            {
+                CurrentIsLiked = false;
+                CurrentIsSaved = false;
+                return;
+            }
+
+            var uid = (_session.UserId ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(uid))
+            {
+                // sem login, não marca como curtido/salvo (UI)
+                CurrentIsLiked = false;
+                CurrentIsSaved = false;
+                return;
+            }
+
+            // LIKE: community/interactions/likes/{uid}/{seriesId} == true
+            var likePath = $"community/interactions/likes/{uid}/{it.SeriesId}";
+            var liked = (await _db.GetAsync<bool?>(likePath, _session.IdToken)) == true;
+
+            // SALVO: users/{uid}/playlist/{dramaId} existe
+            // (aqui dramaId = SeriesId)
+            var saved = await _db.IsInPlaylistAsync(uid, it.SeriesId, _session.IdToken);
+
+            // se mudou item no meio, ignora
+            if (seq != _interactionFetchSeq) return;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CurrentIsLiked = liked;
+                CurrentIsSaved = saved;
+            });
+        }
+        catch
+        {
+            if (seq != _interactionFetchSeq) return;
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                CurrentIsLiked = false;
+                CurrentIsSaved = false;
+            });
+        }
     }
 
     // =========================
@@ -412,7 +504,7 @@ public partial class TikTokPlayerPage : ContentPage
         }
         catch
         {
-            // não zera Items aqui (pra não travar o "infinito")
+            // não zera Items aqui
         }
         finally
         {
@@ -476,13 +568,11 @@ public partial class TikTokPlayerPage : ContentPage
 
     private void TogglePlayPause()
     {
-        // debounce: evita tap “comendo” por corrida com pan/scroll
         if (_tapBusy) return;
         _tapBusy = true;
 
         try
         {
-            // se acabou de pan, ignora tap imediatamente após swipe
             if ((DateTime.UtcNow - _lastGestureAt).TotalMilliseconds < 120)
                 return;
 
@@ -510,7 +600,7 @@ public partial class TikTokPlayerPage : ContentPage
         => TogglePlayPause();
 
     // =========================================================
-    // Pan gesture => swipe up/down (100% confiável)
+    // Pan gesture => swipe up/down
     // =========================================================
     private async void OnPanUpdated(object sender, PanUpdatedEventArgs e)
     {
@@ -531,13 +621,11 @@ public partial class TikTokPlayerPage : ContentPage
 
                 if (_panConsumed) { _panTotalY = 0; return; }
 
-                // swipe pra cima (TotalY negativo)
                 if (_panTotalY < -55)
                 {
                     _panConsumed = true;
                     await GoNextAsync();
                 }
-                // swipe pra baixo
                 else if (_panTotalY > 55)
                 {
                     _panConsumed = true;
@@ -603,7 +691,7 @@ public partial class TikTokPlayerPage : ContentPage
         var it = Current;
         if (it == null) return;
 
-        var uid = _session.UserId ?? "";
+        var uid = (_session.UserId ?? "").Trim();
         if (string.IsNullOrWhiteSpace(uid))
         {
             await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
@@ -617,7 +705,7 @@ public partial class TikTokPlayerPage : ContentPage
             creatorUid = s?.CreatorUserId ?? "";
         }
 
-        var (ok, msg, _) = await _db.ToggleCommunityLikeAsync(
+        var (ok, msg, nowLiked) = await _db.ToggleCommunityLikeAsync(
             userId: uid,
             seriesId: it.SeriesId,
             creatorUid: creatorUid,
@@ -625,7 +713,13 @@ public partial class TikTokPlayerPage : ContentPage
         );
 
         if (!ok)
+        {
             await DisplayAlert("Curtir", msg, "OK");
+            return;
+        }
+
+        // Atualiza UI imediatamente (e persiste via RTDB já)
+        CurrentIsLiked = nowLiked;
     }
 
     private async void OnShareClicked(object sender, EventArgs e)
@@ -658,13 +752,15 @@ public partial class TikTokPlayerPage : ContentPage
         var it = Current;
         if (it == null) return;
 
-        var uid = _session.UserId ?? "";
+        var uid = (_session.UserId ?? "").Trim();
         if (string.IsNullOrWhiteSpace(uid))
         {
             await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
             return;
         }
 
+        // No seu modelo, playlist é users/{uid}/playlist/{dramaId}
+        // Aqui dramaId = seriesId (community)
         var fakeDrama = new DramaSeries
         {
             Id = it.SeriesId,
@@ -673,9 +769,15 @@ public partial class TikTokPlayerPage : ContentPage
             CoverUrl = it.DramaCoverUrl
         };
 
-        var (ok, msg, _) = await _db.TogglePlaylistAsync(uid, fakeDrama, _session.IdToken);
+        var (ok, msg, nowSaved) = await _db.TogglePlaylistAsync(uid, fakeDrama, _session.IdToken);
         if (!ok)
-            await DisplayAlert("Playlist", msg, "OK");
+        {
+            await DisplayAlert("Salvos", msg, "OK");
+            return;
+        }
+
+        // Atualiza UI imediatamente (persistência já foi feita pelo TogglePlaylistAsync)
+        CurrentIsSaved = nowSaved;
     }
 
     public sealed class EpisodeItem

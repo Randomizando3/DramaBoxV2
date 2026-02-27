@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using DramaBox.Models;
 using DramaBox.Services;
@@ -95,7 +97,6 @@ public partial class PlaylistView : ContentPage
             VideoUrl = it.VideoUrl
         };
 
-        // Usa o construtor "novo" que salva progresso
         await Navigation.PushAsync(new PlayerPage(
             dramaId: it.DramaId,
             dramaTitle: it.DramaTitle,
@@ -109,10 +110,56 @@ public partial class PlaylistView : ContentPage
         if (sender is not BindableObject bo || bo.BindingContext is not FirebaseDatabaseService.PlaylistItem it)
             return;
 
-        if (string.IsNullOrWhiteSpace(it.DramaId))
+        var dramaId = (it.DramaId ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(dramaId))
             return;
 
-        await Navigation.PushAsync(new DramaDetailsPage(it.DramaId));
+        try
+        {
+            // ? 1) Tenta tratar como "Community Series"
+            // Se existir community/series/{dramaId}, então é série da comunidade.
+            var series = await _db.GetCommunitySeriesAsync(dramaId, _session.IdToken);
+
+            if (series != null && !string.IsNullOrWhiteSpace(series.Id))
+            {
+                var eps = await _db.GetCommunityEpisodesAsync(series.Id, _session.IdToken);
+
+                if (eps != null && eps.Count > 0)
+                {
+                    // ? Monta o FEED COMPLETO (todos episódios) para swipe funcionar
+                    var feed = eps
+                        .OrderBy(x => x.Number)
+                        .Select(ep => new CommunityService.EpisodeFeedItem
+                        {
+                            SeriesId = series.Id,
+                            CreatorName = series.CreatorName ?? it.Subtitle ?? "Criador",
+                            DramaTitle = series.Title ?? it.Title ?? "Série",
+                            DramaCoverUrl = series.CoverUrl ?? it.CoverUrl ?? "",
+                            EpisodeId = ep.Id ?? "",
+                            EpisodeNumber = ep.Number,
+                            EpisodeTitle = ep.Title ?? "",
+                            VideoUrl = ep.VideoUrl ?? ""
+                        })
+                        .ToList();
+
+                    // abre no TikTok com o primeiro episódio
+                    await Navigation.PushAsync(new TikTokPlayerPage(feed, startIndex: 0));
+                    return;
+                }
+
+                // Se a série existe mas não trouxe eps, ainda tenta abrir a página de série (vai tentar carregar lá)
+                await Navigation.PushAsync(new TikTokPlayerPage(series.Id));
+                return;
+            }
+
+            // ? 2) Não é community => fluxo padrão (catálogo geral)
+            await Navigation.PushAsync(new DramaDetailsPage(dramaId));
+        }
+        catch
+        {
+            // fallback seguro
+            await Navigation.PushAsync(new DramaDetailsPage(dramaId));
+        }
     }
 
     private async void OnRemoveSavedClicked(object sender, EventArgs e)

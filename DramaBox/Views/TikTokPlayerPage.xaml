@@ -13,7 +13,6 @@
     <Grid>
 
         <!-- Player (fundo) -->
-        <!-- No Android, deixe InputTransparent=True para não roubar gesto -->
         <toolkit:MediaElement
             x:Name="Player"
             ZIndex="0"
@@ -25,7 +24,6 @@
             MediaEnded="OnMediaEnded" />
 
         <!-- Carousel (conteúdo) -->
-        <!-- Deixa swipe interno DESLIGADO para não competir com Tap/Pan -->
         <CarouselView x:Name="Feed"
                       ZIndex="1"
                       ItemsSource="{Binding Items}"
@@ -40,14 +38,12 @@
 
             <CarouselView.ItemTemplate>
                 <DataTemplate>
-                    <!-- "quase transparente" pro Android registrar hit-test -->
                     <Grid BackgroundColor="#01000000" />
                 </DataTemplate>
             </CarouselView.ItemTemplate>
         </CarouselView>
 
         <!-- CAMADA DE GESTOS (Tap + Pan) -->
-        <!-- Fica acima do Carousel e abaixo dos botões/topbar -->
         <Grid x:Name="GestureLayer"
               ZIndex="2"
               BackgroundColor="#01000000">
@@ -57,7 +53,6 @@
                                       NumberOfTapsRequired="1" />
                 <PanGestureRecognizer PanUpdated="OnPanUpdated" />
             </Grid.GestureRecognizers>
-
         </Grid>
 
         <!-- Gradiente inferior (legibilidade) -->
@@ -106,12 +101,22 @@
                 <!-- LIKE -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#55000000"
+                        BackgroundColor="#33000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
+
+                    <Border.Triggers>
+                        <!-- Curtido => fundinho vermelho -->
+                        <DataTrigger TargetType="Border"
+                                     Binding="{Binding CurrentIsLiked}"
+                                     Value="True">
+                            <Setter Property="BackgroundColor" Value="#66FF2D2D"/>
+                            <Setter Property="Stroke" Value="#66FF2D2D"/>
+                        </DataTrigger>
+                    </Border.Triggers>
 
                     <ImageButton Source="likewhite.png"
                                  BackgroundColor="Transparent"
@@ -122,7 +127,7 @@
                 <!-- SHARE -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#55000000"
+                        BackgroundColor="#33000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
@@ -135,15 +140,25 @@
                                  Clicked="OnShareClicked"/>
                 </Border>
 
-                <!-- PLAYLIST -->
+                <!-- PLAYLIST / SALVAR -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#55000000"
+                        BackgroundColor="#33000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
+
+                    <Border.Triggers>
+                        <!-- Salvo => destaca o fundo (sem trocar ícone) -->
+                        <DataTrigger TargetType="Border"
+                                     Binding="{Binding CurrentIsSaved}"
+                                     Value="True">
+                            <Setter Property="BackgroundColor" Value="#665B2CC7"/>
+                            <Setter Property="Stroke" Value="#665B2CC7"/>
+                        </DataTrigger>
+                    </Border.Triggers>
 
                     <ImageButton Source="pluswhite.png"
                                  BackgroundColor="Transparent"
@@ -151,7 +166,7 @@
                                  Clicked="OnPlaylistClicked"/>
                 </Border>
 
-                <!-- PRÓXIMO (mantém do jeito que tava) -->
+                <!-- PRÓXIMO -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
                         BackgroundColor="#55111827"
