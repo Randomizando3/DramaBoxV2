@@ -1,4 +1,3 @@
-using CommunityToolkit.Maui.Views;
 using DramaBox.Models;
 using DramaBox.Services;
 using Microsoft.Maui.ApplicationModel;
@@ -55,18 +54,23 @@ public partial class TikTokPlayerPage : ContentPage
 
     private bool _isPlaying;
 
-    // ===== Swipe pan tracking (fallback) =====
+    // ===== Gesture tracking =====
     private double _panTotalY;
+    private bool _panConsumed;
+    private DateTime _lastGestureAt = DateTime.MinValue;
+
+    // ===== Tap debounce (evita “tap perdido / duplo”) =====
+    private bool _tapBusy;
 
     // ===== Random infinite queue =====
     private bool _isAppendingRandom;
     private bool _randomInitialized;
     private readonly HashSet<string> _recentEpisodeIds = new();
-    private const int RandomPrefetchThreshold = 3; // quando faltar 3 itens, puxa mais
-    private const int RecentMax = 250; // limite para evitar crescer infinito
+    private const int RandomPrefetchThreshold = 3;
+    private const int RecentMax = 250;
 
     // =========================================================
-    // A) FEED PRONTO (ex: você monta a fila e abre aqui)
+    // A) FEED PRONTO
     // =========================================================
     public TikTokPlayerPage(List<CommunityService.EpisodeFeedItem> feed, int startIndex = 0)
     {
@@ -101,6 +105,7 @@ public partial class TikTokPlayerPage : ContentPage
                     EpisodeTitle = x.EpisodeTitle ?? "",
                     VideoUrl = x.VideoUrl ?? ""
                 };
+
                 Items.Add(it);
 
                 if (!string.IsNullOrWhiteSpace(it.EpisodeId))
@@ -124,8 +129,7 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================================================
-    // B) ABRIR SÉRIE (Community): fila = episódios da série
-    //    startEpisodeId permite abrir no ep clicado.
+    // B) ABRIR SÉRIE
     // =========================================================
     public TikTokPlayerPage(string seriesId, string startEpisodeId = "")
     {
@@ -146,7 +150,7 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================================================
-    // C) RANDOM: fila = vídeos aleatórios (prioriza VIP no premium)
+    // C) RANDOM (infinito)
     // =========================================================
     public TikTokPlayerPage(bool random)
     {
@@ -185,7 +189,6 @@ public partial class TikTokPlayerPage : ContentPage
 
         if (_mode == "random")
         {
-            // inicializa fila random e já deixa "infinito" via prefetch
             if (!_randomInitialized)
             {
                 _randomInitialized = true;
@@ -194,6 +197,13 @@ public partial class TikTokPlayerPage : ContentPage
 
             StartAtEpisodeIfAny();
             return;
+        }
+
+        // feed já vem pronto
+        if (_mode == "feed")
+        {
+            if (Items.Count > 0 && Current == null)
+                StartAtEpisodeIfAny();
         }
     }
 
@@ -227,11 +237,11 @@ public partial class TikTokPlayerPage : ContentPage
         Current = Items[pos];
         PlayCurrent();
 
-        _ = EnsureInfiniteRandomAsync(); // se já começar perto do fim
+        _ = EnsureInfiniteRandomAsync();
     }
 
     // =========================
-    // Premium do viewer (para priorizar VIP no random)
+    // Premium do viewer (priorizar VIP no random)
     // =========================
     private async Task<bool> IsViewerPremiumAsync()
     {
@@ -240,7 +250,6 @@ public partial class TikTokPlayerPage : ContentPage
             var uid = _session.UserId ?? "";
             if (string.IsNullOrWhiteSpace(uid)) return false;
 
-            // Ajuste conforme seu schema (mantive como você vinha usando)
             var isPremium = (await _db.GetAsync<bool?>($"users/{uid}/profile/isPremium", _session.IdToken)) == true;
             var plano = (await _db.GetAsync<string>($"users/{uid}/profile/plano", _session.IdToken)) ?? "";
 
@@ -260,7 +269,6 @@ public partial class TikTokPlayerPage : ContentPage
         try
         {
             if (string.IsNullOrWhiteSpace(seriesId)) return false;
-            // Ajuste conforme seu schema (mantive como você vinha usando)
             return (await _db.GetAsync<bool?>($"community/series/{seriesId}/creatorIsVip", _session.IdToken)) == true;
         }
         catch
@@ -297,6 +305,7 @@ public partial class TikTokPlayerPage : ContentPage
                     EpisodeTitle = ep.Title ?? "",
                     VideoUrl = ep.VideoUrl ?? ""
                 };
+
                 Items.Add(it);
 
                 if (!string.IsNullOrWhiteSpace(it.EpisodeId))
@@ -318,10 +327,8 @@ public partial class TikTokPlayerPage : ContentPage
 
         _recentEpisodeIds.Add(episodeId);
 
-        // cap simples pra não crescer infinito
         if (_recentEpisodeIds.Count > RecentMax)
         {
-            // limpa metade (MVP)
             var half = _recentEpisodeIds.Take(RecentMax / 2).ToList();
             foreach (var x in half) _recentEpisodeIds.Remove(x);
         }
@@ -335,7 +342,6 @@ public partial class TikTokPlayerPage : ContentPage
         var pos = Feed.Position;
         if (pos < 0) pos = 0;
 
-        // se está perto do fim, prefetch
         if (Items.Count - 1 - pos <= RandomPrefetchThreshold)
             await AppendRandomBatchAsync(clearFirst: false);
     }
@@ -357,17 +363,14 @@ public partial class TikTokPlayerPage : ContentPage
 
             var viewerPremium = await IsViewerPremiumAsync();
 
-            // pega séries "random"
             var seriesList = await _db.GetCommunityFeedAsync("random", take: 60, _session.IdToken);
 
-            // pega 1 ep por série (MVP)
             var temp = new List<(bool isVip, EpisodeItem item)>();
 
             foreach (var s in seriesList)
             {
                 var eps = await _db.GetCommunityEpisodesAsync(s.Id, _session.IdToken);
 
-                // escolhe um ep que ainda não foi usado recentemente
                 var candidate = eps.OrderBy(x => x.Number).FirstOrDefault(x => !_recentEpisodeIds.Contains(x.Id));
                 candidate ??= eps.OrderBy(x => x.Number).FirstOrDefault();
                 if (candidate == null) continue;
@@ -396,10 +399,8 @@ public partial class TikTokPlayerPage : ContentPage
                 ? temp.OrderByDescending(x => x.isVip).ThenBy(_ => rnd.Next())
                 : temp.OrderBy(_ => rnd.Next());
 
-            // adiciona no final (infinito)
             foreach (var x in ordered)
             {
-                // evita duplicar hard (se vier repetido no batch)
                 if (!string.IsNullOrWhiteSpace(x.item.EpisodeId) && _recentEpisodeIds.Contains(x.item.EpisodeId))
                     continue;
 
@@ -411,7 +412,7 @@ public partial class TikTokPlayerPage : ContentPage
         }
         catch
         {
-            // não zera tudo aqui, senão trava o "infinito"
+            // não zera Items aqui (pra não travar o "infinito")
         }
         finally
         {
@@ -420,54 +421,82 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================================================
-    // Playback control (1 player)
+    // Playback control (robusto)
     // =========================================================
     private void PlayCurrent()
     {
         if (Current == null) return;
 
-        try
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            Player.Stop();
-            Player.Source = Current.VideoUrl;
-            Player.Play();
+            try
+            {
+                Player.Stop();
+                Player.Source = Current.VideoUrl;
+                Player.Play();
 
-            _isPlaying = true;
-            IsOverlayVisible = false;
-        }
-        catch
-        {
-            _isPlaying = false;
-            IsOverlayVisible = true;
-        }
+                _isPlaying = true;
+                IsOverlayVisible = false;
+            }
+            catch
+            {
+                _isPlaying = false;
+                IsOverlayVisible = true;
+            }
+        });
     }
 
     private void Pause()
     {
-        try
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            Player.Pause();
-            _isPlaying = false;
-            IsOverlayVisible = true;
-        }
-        catch { }
+            try
+            {
+                Player.Pause();
+                _isPlaying = false;
+                IsOverlayVisible = true;
+            }
+            catch { }
+        });
     }
 
     private void Resume()
     {
-        try
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            Player.Play();
-            _isPlaying = true;
-            IsOverlayVisible = false;
-        }
-        catch { }
+            try
+            {
+                Player.Play();
+                _isPlaying = true;
+                IsOverlayVisible = false;
+            }
+            catch { }
+        });
     }
 
     private void TogglePlayPause()
     {
-        if (_isPlaying) Pause();
-        else Resume();
+        // debounce: evita tap “comendo” por corrida com pan/scroll
+        if (_tapBusy) return;
+        _tapBusy = true;
+
+        try
+        {
+            // se acabou de pan, ignora tap imediatamente após swipe
+            if ((DateTime.UtcNow - _lastGestureAt).TotalMilliseconds < 120)
+                return;
+
+            if (_isPlaying) Pause();
+            else Resume();
+        }
+        finally
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await Task.Delay(120);
+                _tapBusy = false;
+            });
+        }
     }
 
     private async void OnCurrentItemChanged(object sender, CurrentItemChangedEventArgs e)
@@ -481,7 +510,7 @@ public partial class TikTokPlayerPage : ContentPage
         => TogglePlayPause();
 
     // =========================================================
-    // Pan gesture => swipe up/down (fallback robusto)
+    // Pan gesture => swipe up/down (100% confiável)
     // =========================================================
     private async void OnPanUpdated(object sender, PanUpdatedEventArgs e)
     {
@@ -489,6 +518,7 @@ public partial class TikTokPlayerPage : ContentPage
         {
             case GestureStatus.Started:
                 _panTotalY = 0;
+                _panConsumed = false;
                 break;
 
             case GestureStatus.Running:
@@ -497,15 +527,21 @@ public partial class TikTokPlayerPage : ContentPage
 
             case GestureStatus.Completed:
             case GestureStatus.Canceled:
-                // swipe pra cima: TotalY negativo grande
-                if (_panTotalY < -45)
+                _lastGestureAt = DateTime.UtcNow;
+
+                if (_panConsumed) { _panTotalY = 0; return; }
+
+                // swipe pra cima (TotalY negativo)
+                if (_panTotalY < -55)
                 {
-                    OnNextClicked(this, EventArgs.Empty);
+                    _panConsumed = true;
+                    await GoNextAsync();
                 }
-                // opcional: swipe pra baixo volta (se quiser)
-                else if (_panTotalY > 45)
+                // swipe pra baixo
+                else if (_panTotalY > 55)
                 {
-                    OnPrevClicked();
+                    _panConsumed = true;
+                    GoPrev();
                 }
 
                 _panTotalY = 0;
@@ -514,7 +550,7 @@ public partial class TikTokPlayerPage : ContentPage
         }
     }
 
-    private void OnPrevClicked()
+    private void GoPrev()
     {
         if (Items.Count == 0) return;
 
@@ -525,18 +561,12 @@ public partial class TikTokPlayerPage : ContentPage
             Feed.Position = prev;
     }
 
-    private async void OnBackClicked(object sender, EventArgs e)
-        => await Navigation.PopAsync();
-
-    // Próximo: avança o swipe (fila atual)
-    private async void OnNextClicked(object sender, EventArgs e)
+    private async Task GoNextAsync()
     {
         if (Items.Count == 0) return;
 
         var next = Feed.Position + 1;
 
-        // series: para no último
-        // random: se estiver no último, tenta puxar mais e depois anda
         if (next >= Items.Count)
         {
             if (_mode == "random")
@@ -556,7 +586,12 @@ public partial class TikTokPlayerPage : ContentPage
         await EnsureInfiniteRandomAsync();
     }
 
-    // Quando termina: vai pro próximo (tiktok)
+    private async void OnBackClicked(object sender, EventArgs e)
+        => await Navigation.PopAsync();
+
+    private async void OnNextClicked(object sender, EventArgs e)
+        => await GoNextAsync();
+
     private void OnMediaEnded(object sender, EventArgs e)
         => OnNextClicked(sender, e);
 

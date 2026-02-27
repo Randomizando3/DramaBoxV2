@@ -13,7 +13,7 @@
     <Grid>
 
         <!-- Player (fundo) -->
-        <!-- IMPORTANTÍSSIMO: InputTransparent=True para não “roubar” swipe/tap no Android -->
+        <!-- No Android, deixe InputTransparent=True para não roubar gesto -->
         <toolkit:MediaElement
             x:Name="Player"
             ZIndex="0"
@@ -24,11 +24,12 @@
             ShouldShowPlaybackControls="False"
             MediaEnded="OnMediaEnded" />
 
-        <!-- Swipe vertical (fila/posição) -->
+        <!-- Carousel (conteúdo) -->
+        <!-- Deixa swipe interno DESLIGADO para não competir com Tap/Pan -->
         <CarouselView x:Name="Feed"
                       ZIndex="1"
                       ItemsSource="{Binding Items}"
-                      IsSwipeEnabled="True"
+                      IsSwipeEnabled="False"
                       Loop="False"
                       CurrentItemChanged="OnCurrentItemChanged">
 
@@ -39,34 +40,42 @@
 
             <CarouselView.ItemTemplate>
                 <DataTemplate>
-                    <!-- Quase transparente para garantir hit-test/swipe no Android -->
+                    <!-- "quase transparente" pro Android registrar hit-test -->
                     <Grid BackgroundColor="#01000000" />
                 </DataTemplate>
             </CarouselView.ItemTemplate>
-
-            <!-- Tap play/pause + Pan para swipe (fallback robusto) -->
-            <CarouselView.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnScreenTapped" NumberOfTapsRequired="1"/>
-                <PanGestureRecognizer PanUpdated="OnPanUpdated"/>
-            </CarouselView.GestureRecognizers>
         </CarouselView>
 
+        <!-- CAMADA DE GESTOS (Tap + Pan) -->
+        <!-- Fica acima do Carousel e abaixo dos botões/topbar -->
+        <Grid x:Name="GestureLayer"
+              ZIndex="2"
+              BackgroundColor="#01000000">
+
+            <Grid.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnScreenTapped"
+                                      NumberOfTapsRequired="1" />
+                <PanGestureRecognizer PanUpdated="OnPanUpdated" />
+            </Grid.GestureRecognizers>
+
+        </Grid>
+
         <!-- Gradiente inferior (legibilidade) -->
-        <Grid ZIndex="2"
+        <Grid ZIndex="3"
               VerticalOptions="End"
               HeightRequest="220"
               InputTransparent="True">
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
                     <GradientStop Color="#D1000000" Offset="0" />
-                    <GradientStop Color="#52000000" Offset="0.55" />
+                    <GradientStop Color="#55000000" Offset="0.55" />
                     <GradientStop Color="#00000000" Offset="1" />
                 </LinearGradientBrush>
             </Grid.Background>
         </Grid>
 
-        <!-- Overlay infos (inferior esquerdo) -->
-        <Grid ZIndex="3"
+        <!-- Infos (inferior esquerdo) -->
+        <Grid ZIndex="4"
               Padding="16"
               VerticalOptions="End"
               HorizontalOptions="Start"
@@ -86,67 +95,72 @@
             </VerticalStackLayout>
         </Grid>
 
-        <!-- Botões direita (aparecem só quando PAUSADO) -->
-        <Grid ZIndex="4"
+        <!-- Botões direita (só quando PAUSADO) -->
+        <Grid ZIndex="5"
               Padding="14"
               VerticalOptions="Center"
               HorizontalOptions="End"
               IsVisible="{Binding IsOverlayVisible}">
             <VerticalStackLayout Spacing="14">
 
+                <!-- LIKE -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
-                    <Button BackgroundColor="Transparent"
-                            Clicked="OnLikeClicked"
-                            Text="❤"
-                            TextColor="#E5E7EB"
-                            FontSize="18"/>
+
+                    <ImageButton Source="likewhite.png"
+                                 BackgroundColor="Transparent"
+                                 Padding="14"
+                                 Clicked="OnLikeClicked"/>
                 </Border>
 
+                <!-- SHARE -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
-                    <Button BackgroundColor="Transparent"
-                            Clicked="OnShareClicked"
-                            Text="⤴"
-                            TextColor="#E5E7EB"
-                            FontSize="18"/>
+
+                    <ImageButton Source="sharewhite.png"
+                                 BackgroundColor="Transparent"
+                                 Padding="14"
+                                 Clicked="OnShareClicked"/>
                 </Border>
 
+                <!-- PLAYLIST -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
-                    <Button BackgroundColor="Transparent"
-                            Clicked="OnPlaylistClicked"
-                            Text="＋"
-                            TextColor="#E5E7EB"
-                            FontSize="18"/>
+
+                    <ImageButton Source="pluswhite.png"
+                                 BackgroundColor="Transparent"
+                                 Padding="14"
+                                 Clicked="OnPlaylistClicked"/>
                 </Border>
 
+                <!-- PRÓXIMO (mantém do jeito que tava) -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#2A111827"
+                        BackgroundColor="#55111827"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
                         <RoundRectangle CornerRadius="18"/>
                     </Border.StrokeShape>
+
                     <Button BackgroundColor="Transparent"
                             Clicked="OnNextClicked"
                             Text="⏭"
@@ -158,41 +172,35 @@
         </Grid>
 
         <!-- Topbar -->
-        <Grid ZIndex="5"
+        <Grid ZIndex="6"
               Padding="14"
               VerticalOptions="Start"
               HorizontalOptions="Fill"
               ColumnDefinitions="Auto,*,Auto">
 
+            <!-- BACK -->
             <Border Stroke="#26FFFFFF"
                     StrokeThickness="1"
-                    BackgroundColor="#26000000"
-                    WidthRequest="48"
-                    HeightRequest="48">
+                    BackgroundColor="#dd000000"
+                    WidthRequest="56"
+                    HeightRequest="56">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="16"/>
                 </Border.StrokeShape>
-                <Button Text="←"
-                        Clicked="OnBackClicked"
-                        BackgroundColor="Transparent"
-                        TextColor="#cccccc"
-                        FontSize="18"
-                        FontAttributes="Bold"/>
+
+                <ImageButton Source="backwhite.png"
+                             BackgroundColor="Transparent"
+                             Padding="14"
+                             Clicked="OnBackClicked"/>
             </Border>
 
-            <Label Grid.Column="1"
-                   Text="Player"
-                   HorizontalTextAlignment="Center"
-                   VerticalTextAlignment="Center"
-                   TextColor="White"
-                   FontAttributes="Bold"/>
-
+            <!-- MENU (placeholder) -->
             <Border Grid.Column="2"
                     Stroke="#26FFFFFF"
                     StrokeThickness="1"
-                    BackgroundColor="#26000000"
-                    WidthRequest="48"
-                    HeightRequest="48"
+                    BackgroundColor="#dd000000"
+                    WidthRequest="56"
+                    HeightRequest="56"
                     Opacity="0.9">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="16"/>

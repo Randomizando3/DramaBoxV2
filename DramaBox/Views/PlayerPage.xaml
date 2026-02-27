@@ -5,7 +5,6 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
-    xmlns:shapes="clr-namespace:Microsoft.Maui.Controls.Shapes;assembly=Microsoft.Maui.Controls"
     Shell.NavBarIsVisible="False"
     Shell.TabBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
@@ -13,10 +12,13 @@
 
     <Grid>
 
-        <!-- Área "clicável" (tap = pausa/play) -->
+        <!-- Área "clicável" (tap = pausa/play) + swipe up = próximo -->
         <Grid x:Name="TapLayer">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnVideoTapped" />
+
+                <!-- Swipe vertical (up = próximo) -->
+                <PanGestureRecognizer PanUpdated="OnPanUpdated" />
             </Grid.GestureRecognizers>
 
             <!-- Vídeo -->
@@ -62,19 +64,20 @@
 
             <Border Stroke="#26FFFFFF"
                     StrokeThickness="1"
-                    BackgroundColor="#26000000"
+                    BackgroundColor="#55000000"
                     WidthRequest="48"
                     HeightRequest="48">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="16"/>
                 </Border.StrokeShape>
 
-                <Button Text="←"
-                        Clicked="OnBackClicked"
-                        BackgroundColor="Transparent"
-                        TextColor="#cccccc"
-                        FontSize="18"
-                        FontAttributes="Bold"/>
+                <!-- backwhite.png -->
+                <ImageButton Source="backwhite.png"
+                             BackgroundColor="Transparent"
+                             WidthRequest="48"
+                             HeightRequest="48"
+                             Padding="12"
+                             Clicked="OnBackClicked"/>
             </Border>
 
             <VerticalStackLayout Grid.Column="1"
@@ -97,7 +100,7 @@
             <Border Grid.Column="2"
                     Stroke="#26FFFFFF"
                     StrokeThickness="1"
-                    BackgroundColor="#26000000"
+                    BackgroundColor="#55000000"
                     WidthRequest="48"
                     HeightRequest="48"
                     Opacity="0.9">
@@ -125,10 +128,10 @@
                                  VerticalOptions="Center"
                                  Spacing="14">
 
-                <!-- LIKE -->
+                <!-- LIKE (likewhite.png) -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
@@ -137,20 +140,19 @@
                     <Grid>
                         <Button BackgroundColor="Transparent"
                                 Clicked="OnLikeClicked"/>
-                        <shapes:Path
-                            WidthRequest="22"
-                            HeightRequest="22"
-                            Fill="#E5E7EB"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center"
-                            Data="M12 21.593c-5.63-5.539-11-10.297-11-14.402 0-3.791 3.068-5.191 5.281-5.191 1.312 0 4.151.501 5.719 4.457 1.59-3.968 4.464-4.447 5.726-4.447 2.54 0 5.274 1.621 5.274 5.181 0 4.069-5.136 8.625-11 14.402"/>
+                        <Image Source="likewhite.png"
+                               WidthRequest="22"
+                               HeightRequest="22"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               InputTransparent="True"/>
                     </Grid>
                 </Border>
 
-                <!-- SHARE -->
+                <!-- SHARE (sharewhite.png) -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
@@ -159,20 +161,19 @@
                     <Grid>
                         <Button BackgroundColor="Transparent"
                                 Clicked="OnShareClicked"/>
-                        <shapes:Path
-                            WidthRequest="22"
-                            HeightRequest="22"
-                            Fill="#E5E7EB"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center"
-                            Data="M16.272 5.451c-.176-.45-.272-.939-.272-1.451 0-2.208 1.792-4 4-4s4 1.792 4 4-1.792 4-4 4c-1.339 0-2.525-.659-3.251-1.67l-7.131 3.751c.246.591.382 1.239.382 1.919 0 .681-.136 1.33-.384 1.922l7.131 3.751c.726-1.013 1.913-1.673 3.253-1.673 2.208 0 4 1.792 4 4s-1.792 4-4 4-4-1.792-4-4c0-.51.096-.999.27-1.447l-7.129-3.751c-.9 1.326-2.419 2.198-4.141 2.198-2.76 0-5-2.24-5-5s2.24-5 5-5c1.723 0 3.243.873 4.143 2.201l7.129-3.75z"/>
+                        <Image Source="sharewhite.png"
+                               WidthRequest="22"
+                               HeightRequest="22"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               InputTransparent="True"/>
                     </Grid>
                 </Border>
 
-                <!-- ADD (playlist/biblioteca) -->
+                <!-- ADD (pluswhite.png) -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
@@ -181,19 +182,19 @@
                     <Grid>
                         <Button BackgroundColor="Transparent"
                                 Clicked="OnAddClicked"/>
-                        <Label Text="+"
-                               FontSize="24"
-                               FontAttributes="Bold"
-                               TextColor="#E5E7EB"
-                               HorizontalTextAlignment="Center"
-                               VerticalTextAlignment="Center"/>
+                        <Image Source="pluswhite.png"
+                               WidthRequest="22"
+                               HeightRequest="22"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center"
+                               InputTransparent="True"/>
                     </Grid>
                 </Border>
 
-                <!-- PRÓXIMO -->
+                <!-- PRÓXIMO (mantém do jeito que tá) -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
-                        BackgroundColor="#26000000"
+                        BackgroundColor="#55000000"
                         WidthRequest="56"
                         HeightRequest="56">
                     <Border.StrokeShape>
@@ -206,7 +207,8 @@
                                FontSize="18"
                                TextColor="#E5E7EB"
                                HorizontalTextAlignment="Center"
-                               VerticalTextAlignment="Center"/>
+                               VerticalTextAlignment="Center"
+                               InputTransparent="True"/>
                     </Grid>
                 </Border>
 
@@ -217,7 +219,7 @@
                     VerticalOptions="Center"
                     Stroke="#26FFFFFF"
                     StrokeThickness="1"
-                    BackgroundColor="#26000000"
+                    BackgroundColor="#55000000"
                     WidthRequest="86"
                     HeightRequest="86">
                 <Border.StrokeShape>

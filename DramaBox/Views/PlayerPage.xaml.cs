@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DramaBox.Models;
 using DramaBox.Services;
-using Microsoft.Maui.ApplicationModel; // Share
+using Microsoft.Maui.ApplicationModel;
 
 namespace DramaBox.Views;
 
@@ -24,6 +24,17 @@ public partial class PlayerPage : ContentPage
 
     private bool _isPaused;
     private List<DramaEpisode>? _episodesCache;
+
+    // =========================
+    // Swipe up detection
+    // =========================
+    private const double SwipeUpThreshold = 70; // px (ajuste fino se quiser)
+    private const int SwipeCooldownMs = 450;
+
+    private double _panStartY;
+    private bool _panMaybeSwipe;
+    private bool _panConsumed;
+    private bool _swipeCooldown;
 
     public PlayerPage()
     {
@@ -48,7 +59,7 @@ public partial class PlayerPage : ContentPage
         _url = episode?.VideoUrl ?? "";
     }
 
-    // ? evite usar isso no app (não salva continue sem dramaId)
+    // evite usar isso no app (não salva continue sem dramaId)
     public PlayerPage(string title, string url) : this()
     {
         Title = title ?? "";
@@ -70,10 +81,9 @@ public partial class PlayerPage : ContentPage
         try { Player.Play(); } catch { }
         SetPaused(false);
 
-        // ? salva "continue" imediatamente (posição 0) -> aparece na Playlist mesmo se sair rápido
+        // salva "continue" imediatamente (posição 0)
         _ = UpsertContinueEpisodeOnlyAsync();
 
-        // loop (se você quiser manter progresso; se NÃO quiser, eu te mostro como remover)
         _loopCts?.Cancel();
         _loopCts = new CancellationTokenSource();
         _ = SaveLoopAsync(_loopCts.Token);
@@ -83,7 +93,6 @@ public partial class PlayerPage : ContentPage
     {
         try { _loopCts?.Cancel(); } catch { }
 
-        // salva ao sair
         await SaveProgressAsync(force: true);
 
         try { Player?.Stop(); } catch { }
@@ -123,6 +132,68 @@ public partial class PlayerPage : ContentPage
     private async void OnMediaEnded(object sender, EventArgs e)
         => await PlayNextAsync();
 
+    // =========================================================
+    // Swipe Up => Próximo
+    // =========================================================
+    private async void OnPanUpdated(object sender, PanUpdatedEventArgs e)
+    {
+        // não deixa swipe disparar em sequência
+        if (_swipeCooldown) return;
+
+        switch (e.StatusType)
+        {
+            case GestureStatus.Started:
+                _panStartY = e.TotalY;
+                _panMaybeSwipe = true;
+                _panConsumed = false;
+                break;
+
+            case GestureStatus.Running:
+                if (!_panMaybeSwipe || _panConsumed) return;
+
+                // deltaY negativo = arrastou para cima
+                var deltaY = e.TotalY - _panStartY;
+
+                // Se já passou do threshold, consome e toca próximo
+                if (deltaY <= -SwipeUpThreshold)
+                {
+                    _panConsumed = true;
+                    _panMaybeSwipe = false;
+
+                    // IMPORTANTE: não pausar no tap acidental
+                    // (consumimos aqui e evitamos efeitos colaterais)
+                    await TriggerNextFromSwipeAsync();
+                }
+                break;
+
+            case GestureStatus.Completed:
+            case GestureStatus.Canceled:
+                _panMaybeSwipe = false;
+                _panConsumed = false;
+                break;
+        }
+    }
+
+    private async Task TriggerNextFromSwipeAsync()
+    {
+        try
+        {
+            _swipeCooldown = true;
+
+            // mesma ação do botão "Próximo"
+            await PlayNextAsync();
+        }
+        finally
+        {
+            // pequeno cooldown para não disparar várias vezes num único gesto
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(SwipeCooldownMs);
+                MainThread.BeginInvokeOnMainThread(() => _swipeCooldown = false);
+            });
+        }
+    }
+
     // =============================
     // AÇÕES
     // =============================
@@ -133,7 +204,6 @@ public partial class PlayerPage : ContentPage
         if (string.IsNullOrWhiteSpace(uid) || string.IsNullOrWhiteSpace(_dramaId))
             return;
 
-        // precisa do DramaSeries pra usar TogglePlaylistAsync
         var drama = await _db.GetDramaAsync(_dramaId, _session.IdToken);
         if (drama == null)
             return;
@@ -159,7 +229,7 @@ public partial class PlayerPage : ContentPage
             {
                 Title = "DramaBox",
                 Text = text,
-                Uri = _url // opcional
+                Uri = _url
             });
         }
         catch { }
@@ -167,9 +237,7 @@ public partial class PlayerPage : ContentPage
 
     private async void OnLikeClicked(object sender, EventArgs e)
     {
-        // Se for catálogo oficial e você tiver endpoint de like, liga aqui.
-        // Por enquanto: só feedback visual rápido.
-        await DisplayAlert("Curtir", "?? Curtiu!", "OK");
+        await DisplayAlert("Curtir", "? Curtiu!", "OK");
     }
 
     // =============================
@@ -188,14 +256,12 @@ public partial class PlayerPage : ContentPage
             if (_episodesCache == null || _episodesCache.Count == 0)
                 return;
 
-            // acha o próximo por Number
             var next = _episodesCache
                 .OrderBy(x => x.Number)
                 .FirstOrDefault(x => x.Number > _episode.Number);
 
             if (next == null)
             {
-                // acabou a série
                 SetPaused(true);
                 await DisplayAlert("Fim", "Você chegou ao último episódio.", "OK");
                 return;
@@ -210,7 +276,6 @@ public partial class PlayerPage : ContentPage
             try { Player.Play(); } catch { }
             SetPaused(false);
 
-            // ? grava continue com o novo episódio (posição 0)
             await UpsertContinueEpisodeOnlyAsync();
         }
         catch
@@ -225,7 +290,6 @@ public partial class PlayerPage : ContentPage
 
     private async Task UpsertContinueEpisodeOnlyAsync()
     {
-        // grava só o episódio (posição 0) pra playlist aparecer SEM depender de tempo
         if (string.IsNullOrWhiteSpace(_session.UserId) ||
             string.IsNullOrWhiteSpace(_dramaId) ||
             _episode == null)
@@ -261,7 +325,6 @@ public partial class PlayerPage : ContentPage
             await Task.Delay(TimeSpan.FromSeconds(5), ct).ContinueWith(_ => { });
             if (ct.IsCancellationRequested) break;
 
-            // se pausado, não precisa ficar gravando
             if (_isPaused) continue;
 
             await SaveProgressAsync(force: false);
@@ -280,7 +343,6 @@ public partial class PlayerPage : ContentPage
             var pos = Player?.Position ?? TimeSpan.Zero;
             var seconds = (long)Math.Max(0, pos.TotalSeconds);
 
-            // se não for force, evita gravar cedo demais
             if (!force && seconds <= 1)
                 return;
 
