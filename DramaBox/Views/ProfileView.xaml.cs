@@ -187,11 +187,28 @@ public partial class ProfileView : ContentPage
     // mantém sua função
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        var ok = await DisplayAlert("Sair", "Deseja sair da conta?", "Sim", "Cancelar");
-        if (!ok) return;
+        var confirm = await DisplayAlert("Sair", "Deseja sair da conta?", "Sim", "Cancelar");
+        if (!confirm) return;
 
-        _session.Clear();
-        Application.Current!.MainPage = new NavigationPage(new LoginView());
+        try
+        {
+            // ?? Limpa sessão em memória
+            _session.Clear();
+
+            // ?? Remove login automático salvo
+            Preferences.Remove("dramabox.auto.email");
+            Preferences.Remove("dramabox.auto.password");
+
+            // ?? Opcional: limpa também Profile interno
+            _session.SetProfile(null);
+
+            // ?? Garante troca limpa de raiz
+            Application.Current!.MainPage = new NavigationPage(new LoginView());
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlert("Erro", $"Erro ao sair: {ex.Message}", "OK");
+        }
     }
 
     // mantém sua função

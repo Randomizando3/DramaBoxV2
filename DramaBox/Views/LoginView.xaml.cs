@@ -58,10 +58,12 @@ public partial class LoginView : ContentPage
 
             _session.SetSession(result.IdToken, result.RefreshToken, result.LocalId, result.Email);
 
+            // ?? Salva credenciais para relogin automático
+            _session.SaveCredentials(email, password);
+
             var profile = await _db.GetUserProfileAsync(result.LocalId, result.IdToken);
             _session.SetProfile(profile);
 
-            // ? agora sim o Shell passa a existir
             Application.Current!.MainPage = new AppShell();
             await Shell.Current.GoToAsync("//discover");
         }
@@ -87,7 +89,6 @@ public partial class LoginView : ContentPage
 
     private async void OnCreateAccountClicked(object sender, EventArgs e)
     {
-        // ? Login/Register estão fora do Shell -> use Navigation
         await Navigation.PushAsync(new RegisterView());
     }
 }
