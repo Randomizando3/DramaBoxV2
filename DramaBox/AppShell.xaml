@@ -110,6 +110,12 @@
             Title="Perfil"
             Icon="profile.png"
             ContentTemplate="{DataTemplate views:ProfileView}" />
+
+        <ShellContent
+             Route="affiliate"
+             Title="Afiliados"
+             Icon="profile.png"
+             ContentTemplate="{DataTemplate views:AffiliatesView}" />
     </TabBar>
 
 </Shell>

@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     Shell.NavBarIsVisible="False"
     NavigationPage.HasNavigationBar="False"
-    BackgroundColor="{StaticResource AppBackgroundColor}">
+    BackgroundColor="{AppThemeBinding Light={StaticResource LightBackgroundColor}, Dark={StaticResource DarkBackgroundColor}}">
 
     <Grid Padding="18" RowSpacing="12">
         <Grid.RowDefinitions>
@@ -18,15 +18,14 @@
         <!-- Topo -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalOptions="Center">
             <ImageButton BackgroundColor="Transparent"
-             WidthRequest="44"
-             HeightRequest="44"
-             Padding="10"
-             Margin="0,-8,0,0"
-             Clicked="OnBackClicked">
+                         WidthRequest="44"
+                         HeightRequest="44"
+                         Padding="10"
+                         Margin="0,-8,0,0"
+                         Clicked="OnBackClicked">
                 <ImageButton.Source>
-                    <AppThemeBinding 
-            Light="back.png"
-            Dark="backwhite.png"/>
+                    <AppThemeBinding Light="back.png"
+                                     Dark="backwhite.png"/>
                 </ImageButton.Source>
             </ImageButton>
 
@@ -94,14 +93,12 @@
                                          HorizontalOptions="Center"
                                          VerticalOptions="Center">
 
-                        <!-- Ícone com troca automática por tema -->
                         <Image WidthRequest="20"
                                HeightRequest="20"
                                HorizontalOptions="Center">
                             <Image.Source>
-                                <AppThemeBinding
-                                    Light="like.png"
-                                    Dark="likewhite.png"/>
+                                <AppThemeBinding Light="like.png"
+                                                 Dark="likewhite.png"/>
                             </Image.Source>
                         </Image>
 
@@ -119,8 +116,7 @@
                 </Grid>
 
                 <!-- Divisor -->
-                <BoxView Grid.Column="1"
-                         WidthRequest="1">
+                <BoxView Grid.Column="1" WidthRequest="1">
                     <BoxView.BackgroundColor>
                         <AppThemeBinding Light="#1F000000"
                                          Dark="#33FFFFFF"/>
@@ -141,9 +137,8 @@
                                HeightRequest="20"
                                HorizontalOptions="Center">
                             <Image.Source>
-                                <AppThemeBinding
-                                    Light="plus.png"
-                                    Dark="pluswhite.png"/>
+                                <AppThemeBinding Light="plus.png"
+                                                 Dark="pluswhite.png"/>
                             </Image.Source>
                         </Image>
 
@@ -160,8 +155,7 @@
                 </Grid>
 
                 <!-- Divisor -->
-                <BoxView Grid.Column="3"
-                         WidthRequest="1">
+                <BoxView Grid.Column="3" WidthRequest="1">
                     <BoxView.BackgroundColor>
                         <AppThemeBinding Light="#1F000000"
                                          Dark="#33FFFFFF"/>
@@ -182,9 +176,8 @@
                                HeightRequest="20"
                                HorizontalOptions="Center">
                             <Image.Source>
-                                <AppThemeBinding
-                                    Light="share.png"
-                                    Dark="sharewhite.png"/>
+                                <AppThemeBinding Light="share.png"
+                                                 Dark="sharewhite.png"/>
                             </Image.Source>
                         </Image>
 
@@ -223,9 +216,8 @@
                                     <RoundRectangle CornerRadius="14"/>
                                 </Border.StrokeShape>
                                 <Border.Background>
-                                    <AppThemeBinding
-                                        Light="{StaticResource LightSurfaceSecondaryColor}"
-                                        Dark="{StaticResource DarkSurfaceSecondaryColor}" />
+                                    <AppThemeBinding Light="{StaticResource LightSurfaceSecondaryColor}"
+                                                     Dark="{StaticResource DarkSurfaceSecondaryColor}" />
                                 </Border.Background>
                                 <Label Text="{Binding Number}"
                                        FontAttributes="Bold"/>
