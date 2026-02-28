@@ -19,36 +19,58 @@ public partial class App : Application
         _auth = auth;
         _db = db;
 
-        MainPage = new ContentPage(); // placeholder
-        _ = InitializeAsync();
+        // Um loading simples enquanto inicializa (pode ser qualquer página sua)
+        MainPage = new ContentPage
+        {
+            Content = new ActivityIndicator
+            {
+                IsRunning = true,
+                VerticalOptions = LayoutOptions.Center,
+                HorizontalOptions = LayoutOptions.Center
+            }
+        };
+
+        // Garante que o InitializeAsync rode depois que o app já tem Dispatcher/handler
+        Dispatcher.Dispatch(async () => await InitializeAsync());
     }
 
     private async Task InitializeAsync()
     {
-        var (email, password) = _session.GetCredentials();
-
-        if (!string.IsNullOrWhiteSpace(email) &&
-            !string.IsNullOrWhiteSpace(password))
+        try
         {
-            var (ok, _, result) = await _auth.SignInAsync(email, password);
+            var (email, password) = _session.GetCredentials();
 
-            if (ok && result != null)
+            if (!string.IsNullOrWhiteSpace(email) &&
+                !string.IsNullOrWhiteSpace(password))
             {
-                _session.SetSession(result.IdToken,
-                                    result.RefreshToken,
-                                    result.LocalId,
-                                    result.Email);
+                var (ok, _, result) = await _auth.SignInAsync(email, password);
 
-                var profile = await _db.GetUserProfileAsync(result.LocalId,
-                                                            result.IdToken);
+                if (ok && result != null)
+                {
+                    _session.SetSession(result.IdToken,
+                                        result.RefreshToken,
+                                        result.LocalId,
+                                        result.Email);
 
-                _session.SetProfile(profile);
+                    var profile = await _db.GetUserProfileAsync(result.LocalId, result.IdToken);
+                    _session.SetProfile(profile);
 
-                MainPage = new AppShell();
-                return;
+                    await SetRootAsync(new AppShell());
+                    return;
+                }
             }
         }
+        catch
+        {
+            // se quiser, loga aqui
+        }
 
-        MainPage = new NavigationPage(new LoginView());
+        await SetRootAsync(new NavigationPage(new LoginView()));
     }
+
+    private static Task SetRootAsync(Page root)
+        => MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            Application.Current!.MainPage = root;
+        });
 }
