@@ -10,184 +10,205 @@
     NavigationPage.HasNavigationBar="False"
     BackgroundColor="Black">
 
-    <Grid>
+    <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Player (fundo) -->
-        <toolkit:MediaElement
-            x:Name="Player"
-            ZIndex="0"
-            InputTransparent="True"
-            Aspect="AspectFill"
-            ShouldAutoPlay="False"
-            ShouldLoopPlayback="False"
-            ShouldShowPlaybackControls="False"
-            MediaEnded="OnMediaEnded" />
+        <!-- ========================= -->
+        <!-- ROW 1 (conteúdo / vídeo) -->
+        <!-- ========================= -->
+        <Grid Grid.Row="1">
 
-        <!-- Carousel (conteúdo) -->
-        <CarouselView x:Name="Feed"
-                      ZIndex="1"
-                      ItemsSource="{Binding Items}"
-                      IsSwipeEnabled="False"
-                      Loop="False"
-                      CurrentItemChanged="OnCurrentItemChanged">
+            <!-- Player (fundo) -->
+            <toolkit:MediaElement
+                x:Name="Player"
+                ZIndex="0"
+                InputTransparent="True"
+                Aspect="AspectFill"
+                ShouldAutoPlay="False"
+                ShouldLoopPlayback="False"
+                ShouldShowPlaybackControls="False"
+                MediaEnded="OnMediaEnded" />
 
-            <CarouselView.ItemsLayout>
-                <LinearItemsLayout Orientation="Vertical"
-                                   SnapPointsType="MandatorySingle" />
-            </CarouselView.ItemsLayout>
+            <!-- Carousel (apenas para controlar Position/ScrollTo) -->
+            <CarouselView x:Name="Feed"
+                          ZIndex="1"
+                          ItemsSource="{Binding Items}"
+                          IsSwipeEnabled="False"
+                          Loop="False"
+                          InputTransparent="True"
+                          CurrentItemChanged="OnCurrentItemChanged">
+                <CarouselView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical"
+                                       SnapPointsType="MandatorySingle" />
+                </CarouselView.ItemsLayout>
 
-            <CarouselView.ItemTemplate>
-                <DataTemplate>
-                    <Grid BackgroundColor="#01000000" />
-                </DataTemplate>
-            </CarouselView.ItemTemplate>
-        </CarouselView>
+                <CarouselView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid BackgroundColor="#01000000" />
+                    </DataTemplate>
+                </CarouselView.ItemTemplate>
+            </CarouselView>
 
-        <!-- CAMADA DE GESTOS (Tap + Pan) -->
-        <Grid x:Name="GestureLayer"
-              ZIndex="2"
-              BackgroundColor="#01000000">
+            <!-- Tap + Pan SOMENTE na área do vídeo -->
+            <Grid x:Name="TapLayer"
+                  ZIndex="2"
+                  BackgroundColor="Transparent">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnScreenTapped" NumberOfTapsRequired="1" />
+                    <PanGestureRecognizer PanUpdated="OnPanUpdated" />
+                </Grid.GestureRecognizers>
+            </Grid>
 
-            <Grid.GestureRecognizers>
-                <TapGestureRecognizer Tapped="OnScreenTapped"
-                                      NumberOfTapsRequired="1" />
-                <PanGestureRecognizer PanUpdated="OnPanUpdated" />
-            </Grid.GestureRecognizers>
+            <!-- Gradiente inferior -->
+            <Grid ZIndex="3"
+                  VerticalOptions="End"
+                  HeightRequest="220"
+                  InputTransparent="True">
+                <Grid.Background>
+                    <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                        <GradientStop Color="#D1000000" Offset="0" />
+                        <GradientStop Color="#55000000" Offset="0.55" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Grid.Background>
+            </Grid>
+
+            <!-- Infos inferior esquerdo -->
+            <Grid ZIndex="4"
+                  Padding="16"
+                  VerticalOptions="End"
+                  HorizontalOptions="Start"
+                  InputTransparent="True">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="{Binding Current.CreatorName}"
+                           TextColor="White"
+                           FontAttributes="Bold"
+                           FontSize="14" />
+                    <Label Text="{Binding Current.DramaTitle}"
+                           TextColor="White"
+                           FontSize="13" />
+                    <Label Text="{Binding Current.EpisodeTitle}"
+                           TextColor="White"
+                           Opacity="0.75"
+                           FontSize="12" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Botões direita (aparece quando pausado) -->
+            <Grid ZIndex="6"
+                  Padding="14"
+                  VerticalOptions="Center"
+                  HorizontalOptions="End"
+                  IsVisible="{Binding IsOverlayVisible}">
+                <VerticalStackLayout Spacing="12">
+
+                    <!-- LIKE -->
+                    <Border Stroke="#26FFFFFF"
+                            StrokeThickness="1"
+                            BackgroundColor="#33000000"
+                            WidthRequest="38"
+                            HeightRequest="38">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border"
+                                         Binding="{Binding CurrentIsLiked}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="#66FF2D2D"/>
+                                <Setter Property="Stroke" Value="#66FF2D2D"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+
+                        <ImageButton Source="likewhite.png"
+                                     BackgroundColor="Transparent"
+                                     Padding="8"
+                                     Clicked="OnLikeClicked"/>
+                    </Border>
+
+                    <!-- SHARE -->
+                    <Border Stroke="#26FFFFFF"
+                            StrokeThickness="1"
+                            BackgroundColor="#33000000"
+                            WidthRequest="38"
+                            HeightRequest="38">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+
+                        <ImageButton Source="sharewhite.png"
+                                     BackgroundColor="Transparent"
+                                     Padding="8"
+                                     Clicked="OnShareClicked"/>
+                    </Border>
+
+                    <!-- PLAYLIST -->
+                    <Border Stroke="#26FFFFFF"
+                            StrokeThickness="1"
+                            BackgroundColor="#33000000"
+                            WidthRequest="38"
+                            HeightRequest="38">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border"
+                                         Binding="{Binding CurrentIsSaved}"
+                                         Value="True">
+                                <Setter Property="BackgroundColor" Value="#665B2CC7"/>
+                                <Setter Property="Stroke" Value="#665B2CC7"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+
+                        <ImageButton Source="pluswhite.png"
+                                     BackgroundColor="Transparent"
+                                     Padding="8"
+                                     Clicked="OnPlaylistClicked"/>
+                    </Border>
+
+                    <!-- PRÓXIMO -->
+                    <Border Stroke="#26FFFFFF"
+                            StrokeThickness="1"
+                            BackgroundColor="#55111827"
+                            WidthRequest="38"
+                            HeightRequest="38">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+
+                        <ImageButton Source="gowhite.png"
+                                     BackgroundColor="Transparent"
+                                     Padding="8"
+                                     Clicked="OnNextClicked"/>
+                    </Border>
+
+                    <!-- VOLTAR -->
+                    <Border Stroke="#26FFFFFF"
+                            StrokeThickness="1"
+                            BackgroundColor="#55111827"
+                            WidthRequest="38"
+                            HeightRequest="38">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="14"/>
+                        </Border.StrokeShape>
+
+                        <ImageButton Source="rewind.png"
+                                     BackgroundColor="Transparent"
+                                     Padding="8"
+                                     Clicked="OnPrevClicked"/>
+                    </Border>
+
+                </VerticalStackLayout>
+            </Grid>
+
         </Grid>
 
-        <!-- Gradiente inferior (legibilidade) -->
-        <Grid ZIndex="3"
-              VerticalOptions="End"
-              HeightRequest="220"
-              InputTransparent="True">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
-                    <GradientStop Color="#D1000000" Offset="0" />
-                    <GradientStop Color="#55000000" Offset="0.55" />
-                    <GradientStop Color="#00000000" Offset="1" />
-                </LinearGradientBrush>
-            </Grid.Background>
-        </Grid>
-
-        <!-- Infos (inferior esquerdo) -->
-        <Grid ZIndex="4"
-              Padding="16"
-              VerticalOptions="End"
-              HorizontalOptions="Start"
-              InputTransparent="True">
-            <VerticalStackLayout Spacing="6">
-                <Label Text="{Binding Current.CreatorName}"
-                       TextColor="White"
-                       FontAttributes="Bold"
-                       FontSize="14" />
-                <Label Text="{Binding Current.DramaTitle}"
-                       TextColor="White"
-                       FontSize="13" />
-                <Label Text="{Binding Current.EpisodeTitle}"
-                       TextColor="White"
-                       Opacity="0.75"
-                       FontSize="12" />
-            </VerticalStackLayout>
-        </Grid>
-
-        <!-- Botões direita (só quando PAUSADO) -->
-        <Grid ZIndex="5"
-              Padding="14"
-              VerticalOptions="Center"
-              HorizontalOptions="End"
-              IsVisible="{Binding IsOverlayVisible}">
-            <VerticalStackLayout Spacing="14">
-
-                <!-- LIKE -->
-                <Border Stroke="#26FFFFFF"
-                        StrokeThickness="1"
-                        BackgroundColor="#33000000"
-                        WidthRequest="56"
-                        HeightRequest="56">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <Border.Triggers>
-                        <!-- Curtido => fundinho vermelho -->
-                        <DataTrigger TargetType="Border"
-                                     Binding="{Binding CurrentIsLiked}"
-                                     Value="True">
-                            <Setter Property="BackgroundColor" Value="#66FF2D2D"/>
-                            <Setter Property="Stroke" Value="#66FF2D2D"/>
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <ImageButton Source="likewhite.png"
-                                 BackgroundColor="Transparent"
-                                 Padding="14"
-                                 Clicked="OnLikeClicked"/>
-                </Border>
-
-                <!-- SHARE -->
-                <Border Stroke="#26FFFFFF"
-                        StrokeThickness="1"
-                        BackgroundColor="#33000000"
-                        WidthRequest="56"
-                        HeightRequest="56">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <ImageButton Source="sharewhite.png"
-                                 BackgroundColor="Transparent"
-                                 Padding="14"
-                                 Clicked="OnShareClicked"/>
-                </Border>
-
-                <!-- PLAYLIST / SALVAR -->
-                <Border Stroke="#26FFFFFF"
-                        StrokeThickness="1"
-                        BackgroundColor="#33000000"
-                        WidthRequest="56"
-                        HeightRequest="56">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <Border.Triggers>
-                        <!-- Salvo => destaca o fundo (sem trocar ícone) -->
-                        <DataTrigger TargetType="Border"
-                                     Binding="{Binding CurrentIsSaved}"
-                                     Value="True">
-                            <Setter Property="BackgroundColor" Value="#665B2CC7"/>
-                            <Setter Property="Stroke" Value="#665B2CC7"/>
-                        </DataTrigger>
-                    </Border.Triggers>
-
-                    <ImageButton Source="pluswhite.png"
-                                 BackgroundColor="Transparent"
-                                 Padding="14"
-                                 Clicked="OnPlaylistClicked"/>
-                </Border>
-
-                <!-- PRÓXIMO -->
-                <Border Stroke="#26FFFFFF"
-                        StrokeThickness="1"
-                        BackgroundColor="#55111827"
-                        WidthRequest="56"
-                        HeightRequest="56">
-                    <Border.StrokeShape>
-                        <RoundRectangle CornerRadius="18"/>
-                    </Border.StrokeShape>
-
-                    <Button BackgroundColor="Transparent"
-                            Clicked="OnNextClicked"
-                            Text="⏭"
-                            TextColor="#E5E7EB"
-                            FontSize="18"/>
-                </Border>
-
-            </VerticalStackLayout>
-        </Grid>
-
-        <!-- Topbar -->
-        <Grid ZIndex="6"
+        <!-- ========================= -->
+        <!-- ROW 0 (Topbar)            -->
+        <!-- ========================= -->
+        <Grid Grid.Row="0"
+              ZIndex="10"
               Padding="14"
               VerticalOptions="Start"
               HorizontalOptions="Fill"
@@ -197,31 +218,31 @@
             <Border Stroke="#26FFFFFF"
                     StrokeThickness="1"
                     BackgroundColor="#dd000000"
-                    WidthRequest="56"
-                    HeightRequest="56">
+                    WidthRequest="38"
+                    HeightRequest="38">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16"/>
+                    <RoundRectangle CornerRadius="12"/>
                 </Border.StrokeShape>
 
                 <ImageButton Source="backwhite.png"
                              BackgroundColor="Transparent"
-                             Padding="14"
+                             Padding="8"
                              Clicked="OnBackClicked"/>
             </Border>
 
-            <!-- MENU (placeholder) -->
+            <!-- MENU placeholder -->
             <Border Grid.Column="2"
                     Stroke="#26FFFFFF"
                     StrokeThickness="1"
                     BackgroundColor="#dd000000"
-                    WidthRequest="56"
-                    HeightRequest="56"
+                    WidthRequest="38"
+                    HeightRequest="38"
                     Opacity="0.9">
                 <Border.StrokeShape>
-                    <RoundRectangle CornerRadius="16"/>
+                    <RoundRectangle CornerRadius="12"/>
                 </Border.StrokeShape>
                 <Label Text="⋯"
-                       FontSize="22"
+                       FontSize="18"
                        TextColor="#E5E7EB"
                        HorizontalTextAlignment="Center"
                        VerticalTextAlignment="Center"/>

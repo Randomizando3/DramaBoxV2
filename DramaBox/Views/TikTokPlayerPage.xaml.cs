@@ -17,11 +17,9 @@ public partial class TikTokPlayerPage : ContentPage
     private readonly FirebaseDatabaseService _db;
     private readonly CommunityService _community;
 
-    // modos suportados: "feed", "series", "random"
-    private readonly string _mode;
+    private readonly string _mode;   // "feed", "series", "random"
     private readonly string _seriesId;
 
-    // start específico quando abrir via Community (ep selecionado)
     private readonly string _startEpisodeId;
     private readonly int _startIndex;
 
@@ -36,13 +34,10 @@ public partial class TikTokPlayerPage : ContentPage
             if (_current == value) return;
             _current = value;
             OnPropertyChanged(nameof(Current));
-
-            // Sempre que muda o item, recarrega estados (like/saved)
             _ = RefreshInteractionStatesAsync();
         }
     }
 
-    // overlay aparece só quando pausado
     private bool _isOverlayVisible;
     public bool IsOverlayVisible
     {
@@ -57,43 +52,36 @@ public partial class TikTokPlayerPage : ContentPage
 
     private bool _isPlaying;
 
-    // ===== UI state (persistidos via consulta RTDB) =====
     private bool _currentIsLiked;
     public bool CurrentIsLiked
     {
         get => _currentIsLiked;
-        set
-        {
-            if (_currentIsLiked == value) return;
-            _currentIsLiked = value;
-            OnPropertyChanged(nameof(CurrentIsLiked));
-        }
+        set { if (_currentIsLiked == value) return; _currentIsLiked = value; OnPropertyChanged(nameof(CurrentIsLiked)); }
     }
 
     private bool _currentIsSaved;
     public bool CurrentIsSaved
     {
         get => _currentIsSaved;
-        set
-        {
-            if (_currentIsSaved == value) return;
-            _currentIsSaved = value;
-            OnPropertyChanged(nameof(CurrentIsSaved));
-        }
+        set { if (_currentIsSaved == value) return; _currentIsSaved = value; OnPropertyChanged(nameof(CurrentIsSaved)); }
     }
 
-    // Evita corrida: troca de item enquanto consulta ainda está rodando
     private int _interactionFetchSeq;
 
-    // ===== Gesture tracking =====
-    private double _panTotalY;
-    private bool _panConsumed;
-    private DateTime _lastGestureAt = DateTime.MinValue;
+    // ===== Pan / Swipe (igual PlayerPage) =====
+    private const double SwipeUpThreshold = 70;
+    private const double SwipeDownThreshold = 70;
+    private const int SwipeCooldownMs = 450;
 
-    // ===== Tap debounce =====
+    private double _panStartY;
+    private bool _panMaybeSwipe;
+    private bool _panConsumed;
+    private bool _swipeCooldown;
+
+    private DateTime _lastGestureAt = DateTime.MinValue;
     private bool _tapBusy;
 
-    // ===== Random infinite queue =====
+    // ===== Random (mantive seu esqueleto) =====
     private bool _isAppendingRandom;
     private bool _randomInitialized;
     private readonly HashSet<string> _recentEpisodeIds = new();
@@ -118,6 +106,7 @@ public partial class TikTokPlayerPage : ContentPage
         _startIndex = Math.Max(0, startIndex);
 
         BindingContext = this;
+        Feed.ItemsSource = Items;
 
         Items.Clear();
         if (feed != null)
@@ -136,26 +125,19 @@ public partial class TikTokPlayerPage : ContentPage
                     EpisodeTitle = x.EpisodeTitle ?? "",
                     VideoUrl = x.VideoUrl ?? ""
                 };
-
                 Items.Add(it);
-
-                if (!string.IsNullOrWhiteSpace(it.EpisodeId))
-                    TrackRecent(it.EpisodeId);
+                TrackRecent(it.EpisodeId);
             }
         }
 
-        Feed.ItemsSource = Items;
-
-        MainThread.BeginInvokeOnMainThread(() =>
+        MainThread.BeginInvokeOnMainThread(async () =>
         {
             if (Items.Count == 0) return;
 
             var pos = _startIndex;
             if (pos >= Items.Count) pos = 0;
 
-            Feed.Position = pos;
-            Current = Items[pos];
-            PlayCurrent();
+            await ScrollToIndexAsync(pos, animate: false);
         });
     }
 
@@ -181,7 +163,7 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================================================
-    // C) RANDOM (infinito)
+    // C) RANDOM
     // =========================================================
     public TikTokPlayerPage(bool random)
     {
@@ -210,15 +192,13 @@ public partial class TikTokPlayerPage : ContentPage
 
         IsOverlayVisible = false;
         _isPlaying = false;
-
-        // reseta UI states até carregar
         CurrentIsLiked = false;
         CurrentIsSaved = false;
 
         if (_mode == "series")
         {
             await LoadSeriesAsync();
-            StartAtEpisodeIfAny();
+            await StartAtEpisodeIfAnyAsync();
             return;
         }
 
@@ -229,18 +209,16 @@ public partial class TikTokPlayerPage : ContentPage
                 _randomInitialized = true;
                 await AppendRandomBatchAsync(clearFirst: true);
             }
-
-            StartAtEpisodeIfAny();
+            await StartAtEpisodeIfAnyAsync();
             return;
         }
 
-        // feed já vem pronto
         if (_mode == "feed")
         {
             if (Items.Count > 0 && Current == null)
-                StartAtEpisodeIfAny();
+                await StartAtEpisodeIfAnyAsync();
             else
-                _ = RefreshInteractionStatesAsync(); // garante estado ao reabrir
+                _ = RefreshInteractionStatesAsync();
         }
     }
 
@@ -251,9 +229,9 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================
-    // Start position
+    // Start position (robusto)
     // =========================
-    private void StartAtEpisodeIfAny()
+    private async Task StartAtEpisodeIfAnyAsync()
     {
         if (Items.Count == 0) return;
 
@@ -270,15 +248,40 @@ public partial class TikTokPlayerPage : ContentPage
             if (pos >= Items.Count) pos = 0;
         }
 
-        Feed.Position = pos;
-        Current = Items[pos];
-        PlayCurrent();
-
+        await ScrollToIndexAsync(pos, animate: false);
         _ = EnsureInfiniteRandomAsync();
     }
 
+    // ? Este método é o que faz funcionar no Windows
+    private async Task ScrollToIndexAsync(int index, bool animate)
+    {
+        if (Items.Count == 0) return;
+        if (index < 0) index = 0;
+        if (index >= Items.Count) index = Items.Count - 1;
+
+        var it = Items[index];
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                Feed.ScrollTo(index, position: ScrollToPosition.Center, animate: animate);
+            }
+            catch
+            {
+                // fallback: tenta Position
+                try { Feed.Position = index; } catch { }
+            }
+
+            Current = it;
+            PlayCurrent();
+        });
+
+        await Task.CompletedTask;
+    }
+
     // =========================
-    // Consultas de estado (LIKE + SALVO)
+    // LIKE + SALVOS
     // =========================
     private async Task RefreshInteractionStatesAsync()
     {
@@ -297,21 +300,16 @@ public partial class TikTokPlayerPage : ContentPage
             var uid = (_session.UserId ?? "").Trim();
             if (string.IsNullOrWhiteSpace(uid))
             {
-                // sem login, não marca como curtido/salvo (UI)
                 CurrentIsLiked = false;
                 CurrentIsSaved = false;
                 return;
             }
 
-            // LIKE: community/interactions/likes/{uid}/{seriesId} == true
             var likePath = $"community/interactions/likes/{uid}/{it.SeriesId}";
             var liked = (await _db.GetAsync<bool?>(likePath, _session.IdToken)) == true;
 
-            // SALVO: users/{uid}/playlist/{dramaId} existe
-            // (aqui dramaId = SeriesId)
             var saved = await _db.IsInPlaylistAsync(uid, it.SeriesId, _session.IdToken);
 
-            // se mudou item no meio, ignora
             if (seq != _interactionFetchSeq) return;
 
             MainThread.BeginInvokeOnMainThread(() =>
@@ -333,43 +331,6 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================
-    // Premium do viewer (priorizar VIP no random)
-    // =========================
-    private async Task<bool> IsViewerPremiumAsync()
-    {
-        try
-        {
-            var uid = _session.UserId ?? "";
-            if (string.IsNullOrWhiteSpace(uid)) return false;
-
-            var isPremium = (await _db.GetAsync<bool?>($"users/{uid}/profile/isPremium", _session.IdToken)) == true;
-            var plano = (await _db.GetAsync<string>($"users/{uid}/profile/plano", _session.IdToken)) ?? "";
-
-            plano = plano.Trim().ToLowerInvariant();
-            if (plano is "premium" or "superpremium" or "vip" or "diamond") return true;
-
-            return isPremium;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private async Task<bool> IsSeriesVipAsync(string seriesId)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(seriesId)) return false;
-            return (await _db.GetAsync<bool?>($"community/series/{seriesId}/creatorIsVip", _session.IdToken)) == true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    // =========================
     // Load series
     // =========================
     private async Task LoadSeriesAsync()
@@ -383,6 +344,8 @@ public partial class TikTokPlayerPage : ContentPage
             var s = await _db.GetCommunitySeriesAsync(_seriesId, _session.IdToken);
             var eps = await _db.GetCommunityEpisodesAsync(_seriesId, _session.IdToken);
 
+            System.Diagnostics.Debug.WriteLine($"TOTAL EPS: {eps.Count}");
+
             foreach (var ep in eps.OrderBy(x => x.Number))
             {
                 var it = new EpisodeItem
@@ -392,16 +355,14 @@ public partial class TikTokPlayerPage : ContentPage
                     CreatorName = s?.CreatorName ?? "Criador",
                     DramaTitle = s?.Title ?? "Série",
                     DramaCoverUrl = s?.CoverUrl ?? "",
-                    EpisodeId = ep.Id,
+                    EpisodeId = ep.Id ?? "",
                     EpisodeNumber = ep.Number,
                     EpisodeTitle = ep.Title ?? "",
                     VideoUrl = ep.VideoUrl ?? ""
                 };
 
                 Items.Add(it);
-
-                if (!string.IsNullOrWhiteSpace(it.EpisodeId))
-                    TrackRecent(it.EpisodeId);
+                TrackRecent(it.EpisodeId);
             }
         }
         catch
@@ -411,7 +372,7 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================
-    // Random infinite batches
+    // Random helpers (mantidos)
     // =========================
     private void TrackRecent(string episodeId)
     {
@@ -453,21 +414,20 @@ public partial class TikTokPlayerPage : ContentPage
                 _recentEpisodeIds.Clear();
             }
 
-            var viewerPremium = await IsViewerPremiumAsync();
-
             var seriesList = await _db.GetCommunityFeedAsync("random", take: 60, _session.IdToken);
-
-            var temp = new List<(bool isVip, EpisodeItem item)>();
+            var temp = new List<EpisodeItem>();
 
             foreach (var s in seriesList)
             {
-                var eps = await _db.GetCommunityEpisodesAsync(s.Id, _session.IdToken);
+                if (s == null || string.IsNullOrWhiteSpace(s.Id))
+                    continue;
 
-                var candidate = eps.OrderBy(x => x.Number).FirstOrDefault(x => !_recentEpisodeIds.Contains(x.Id));
+                var eps = await _db.GetCommunityEpisodesAsync(s.Id, _session.IdToken);
+                if (eps == null || eps.Count == 0) continue;
+
+                var candidate = eps.OrderBy(x => x.Number).FirstOrDefault(x => !_recentEpisodeIds.Contains(x.Id ?? ""));
                 candidate ??= eps.OrderBy(x => x.Number).FirstOrDefault();
                 if (candidate == null) continue;
-
-                var isVip = viewerPremium && await IsSeriesVipAsync(s.Id);
 
                 var it = new EpisodeItem
                 {
@@ -476,35 +436,29 @@ public partial class TikTokPlayerPage : ContentPage
                     CreatorName = s.CreatorName ?? "Criador",
                     DramaTitle = s.Title ?? "Série",
                     DramaCoverUrl = s.CoverUrl ?? "",
-                    EpisodeId = candidate.Id,
+                    EpisodeId = candidate.Id ?? "",
                     EpisodeNumber = candidate.Number,
                     EpisodeTitle = candidate.Title ?? "",
                     VideoUrl = candidate.VideoUrl ?? ""
                 };
 
-                temp.Add((isVip, it));
+                temp.Add(it);
             }
 
+            // shuffle
             var rnd = new Random();
-
-            IEnumerable<(bool isVip, EpisodeItem item)> ordered = viewerPremium
-                ? temp.OrderByDescending(x => x.isVip).ThenBy(_ => rnd.Next())
-                : temp.OrderBy(_ => rnd.Next());
-
-            foreach (var x in ordered)
+            foreach (var it in temp.OrderBy(_ => rnd.Next()))
             {
-                if (!string.IsNullOrWhiteSpace(x.item.EpisodeId) && _recentEpisodeIds.Contains(x.item.EpisodeId))
+                if (!string.IsNullOrWhiteSpace(it.EpisodeId) && _recentEpisodeIds.Contains(it.EpisodeId))
                     continue;
 
-                Items.Add(x.item);
-
-                if (!string.IsNullOrWhiteSpace(x.item.EpisodeId))
-                    TrackRecent(x.item.EpisodeId);
+                Items.Add(it);
+                TrackRecent(it.EpisodeId);
             }
         }
         catch
         {
-            // não zera Items aqui
+            // não zera Items
         }
         finally
         {
@@ -513,7 +467,7 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================================================
-    // Playback control (robusto)
+    // Playback
     // =========================================================
     private void PlayCurrent()
     {
@@ -589,78 +543,107 @@ public partial class TikTokPlayerPage : ContentPage
         }
     }
 
+    private void OnScreenTapped(object sender, TappedEventArgs e)
+        => TogglePlayPause();
+
     private async void OnCurrentItemChanged(object sender, CurrentItemChangedEventArgs e)
     {
+        _lastGestureAt = DateTime.UtcNow;
+
         Current = e.CurrentItem as EpisodeItem;
         PlayCurrent();
         await EnsureInfiniteRandomAsync();
     }
 
-    private void OnScreenTapped(object sender, TappedEventArgs e)
-        => TogglePlayPause();
-
     // =========================================================
-    // Pan gesture => swipe up/down
+    // Pan => swipe up/down (igual PlayerPage)
     // =========================================================
     private async void OnPanUpdated(object sender, PanUpdatedEventArgs e)
     {
+        if (_swipeCooldown) return;
+
         switch (e.StatusType)
         {
             case GestureStatus.Started:
-                _panTotalY = 0;
+                _panStartY = e.TotalY;
+                _panMaybeSwipe = true;
                 _panConsumed = false;
                 break;
 
             case GestureStatus.Running:
-                _panTotalY = e.TotalY;
+                if (!_panMaybeSwipe || _panConsumed) return;
+
+                var deltaY = e.TotalY - _panStartY;
+
+                if (deltaY <= -SwipeUpThreshold)
+                {
+                    _panConsumed = true;
+                    _panMaybeSwipe = false;
+                    await TriggerFromSwipeAsync(next: true);
+                }
+                else if (deltaY >= SwipeDownThreshold)
+                {
+                    _panConsumed = true;
+                    _panMaybeSwipe = false;
+                    await TriggerFromSwipeAsync(next: false);
+                }
                 break;
 
             case GestureStatus.Completed:
             case GestureStatus.Canceled:
-                _lastGestureAt = DateTime.UtcNow;
-
-                if (_panConsumed) { _panTotalY = 0; return; }
-
-                if (_panTotalY < -55)
-                {
-                    _panConsumed = true;
-                    await GoNextAsync();
-                }
-                else if (_panTotalY > 55)
-                {
-                    _panConsumed = true;
-                    GoPrev();
-                }
-
-                _panTotalY = 0;
-                await EnsureInfiniteRandomAsync();
+                _panMaybeSwipe = false;
+                _panConsumed = false;
                 break;
         }
     }
 
-    private void GoPrev()
+    private async Task TriggerFromSwipeAsync(bool next)
+    {
+        try
+        {
+            _swipeCooldown = true;
+            if (next) await GoNextAsync();
+            else await GoPrevAsync();
+        }
+        finally
+        {
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(SwipeCooldownMs);
+                MainThread.BeginInvokeOnMainThread(() => _swipeCooldown = false);
+            });
+        }
+    }
+
+    // =========================================================
+    // Next/Prev (USANDO ScrollToIndexAsync)
+    // =========================================================
+    private async Task GoPrevAsync()
     {
         if (Items.Count == 0) return;
 
-        var prev = Feed.Position - 1;
-        if (prev < 0) prev = 0;
+        var currentIndex = GetCurrentIndexSafe();
+        var prev = Math.Max(0, currentIndex - 1);
 
-        if (prev != Feed.Position)
-            Feed.Position = prev;
+        if (prev != currentIndex)
+            await ScrollToIndexAsync(prev, animate: false);
+
+        await EnsureInfiniteRandomAsync();
     }
 
     private async Task GoNextAsync()
     {
         if (Items.Count == 0) return;
 
-        var next = Feed.Position + 1;
+        var currentIndex = GetCurrentIndexSafe();
+        var next = currentIndex + 1;
 
         if (next >= Items.Count)
         {
             if (_mode == "random")
             {
                 await AppendRandomBatchAsync(clearFirst: false);
-                next = Math.Min(Feed.Position + 1, Items.Count - 1);
+                next = Math.Min(currentIndex + 1, Items.Count - 1);
             }
             else
             {
@@ -668,20 +651,47 @@ public partial class TikTokPlayerPage : ContentPage
             }
         }
 
-        if (next != Feed.Position)
-            Feed.Position = next;
+        if (next != currentIndex)
+            await ScrollToIndexAsync(next, animate: false);
 
         await EnsureInfiniteRandomAsync();
     }
 
+    private int GetCurrentIndexSafe()
+    {
+        try
+        {
+            var it = Current;
+            if (it == null) return Feed.Position < 0 ? 0 : Feed.Position;
+
+            var idx = Items.IndexOf(it);
+            if (idx >= 0) return idx;
+
+            var pos = Feed.Position;
+            if (pos < 0) pos = 0;
+            if (pos >= Items.Count) pos = Items.Count - 1;
+            return pos;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    // =========================================================
+    // Buttons
+    // =========================================================
     private async void OnBackClicked(object sender, EventArgs e)
         => await Navigation.PopAsync();
 
     private async void OnNextClicked(object sender, EventArgs e)
         => await GoNextAsync();
 
-    private void OnMediaEnded(object sender, EventArgs e)
-        => OnNextClicked(sender, e);
+    private async void OnPrevClicked(object sender, EventArgs e)
+        => await GoPrevAsync();
+
+    private async void OnMediaEnded(object sender, EventArgs e)
+        => await GoNextAsync();
 
     // =========================================================
     // Actions
@@ -718,7 +728,6 @@ public partial class TikTokPlayerPage : ContentPage
             return;
         }
 
-        // Atualiza UI imediatamente (e persiste via RTDB já)
         CurrentIsLiked = nowLiked;
     }
 
@@ -759,8 +768,6 @@ public partial class TikTokPlayerPage : ContentPage
             return;
         }
 
-        // No seu modelo, playlist é users/{uid}/playlist/{dramaId}
-        // Aqui dramaId = seriesId (community)
         var fakeDrama = new DramaSeries
         {
             Id = it.SeriesId,
@@ -776,10 +783,12 @@ public partial class TikTokPlayerPage : ContentPage
             return;
         }
 
-        // Atualiza UI imediatamente (persistência já foi feita pelo TogglePlaylistAsync)
         CurrentIsSaved = nowSaved;
     }
 
+    // =========================================================
+    // Model interno
+    // =========================================================
     public sealed class EpisodeItem
     {
         public string SeriesId { get; set; } = "";
