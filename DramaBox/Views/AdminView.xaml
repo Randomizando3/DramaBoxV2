@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DramaBox.Views.AdminView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    NavigationPage.HasNavigationBar="False"
+    BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="12" Padding="12,12,12,100">
+
+            <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
+                <VerticalStackLayout Spacing="2">
+                    <Label Text="Admin" FontSize="22" FontAttributes="Bold"
+                           TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}" />
+                    <Label Text="Pagamentos, usuarios, comunidade e discover"
+                           FontSize="12"
+                           TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}" />
+                </VerticalStackLayout>
+
+                <Button Grid.Column="1"
+                        Text="Atualizar"
+                        Padding="14,8"
+                        CornerRadius="12"
+                        Clicked="OnRefreshClicked" />
+            </Grid>
+
+            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                <HorizontalStackLayout Spacing="8">
+                    <Button x:Name="TabMonetizationButton"
+                            Text="Monetizacao"
+                            Padding="14,8"
+                            CornerRadius="12"
+                            Clicked="OnShowMonetizationClicked" />
+                    <Button x:Name="TabUsersButton"
+                            Text="Usuarios"
+                            Padding="14,8"
+                            CornerRadius="12"
+                            Clicked="OnShowUsersClicked" />
+                    <Button x:Name="TabCommunityButton"
+                            Text="Comunidade"
+                            Padding="14,8"
+                            CornerRadius="12"
+                            Clicked="OnShowCommunityClicked" />
+                    <Button x:Name="TabDramasButton"
+                            Text="Dramas"
+                            Padding="14,8"
+                            CornerRadius="12"
+                            Clicked="OnShowDramasClicked" />
+                </HorizontalStackLayout>
+            </ScrollView>
+
+            <!-- Pagamentos -->
+            <Border x:Name="MonetizationSection"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="14">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Solicitacoes de pagamento" FontAttributes="Bold" />
+                    <Label Text="Toda solicitacao entra como pending ate aprovacao ou rejeicao."
+                           FontSize="12"
+                           TextColor="{StaticResource AppMutedTextColor}" />
+
+                    <CollectionView x:Name="PayoutList"
+                                    SelectionMode="None"
+                                    EmptyView="Sem solicitacoes no momento.">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                        StrokeThickness="1"
+                                        Padding="10"
+                                        Margin="0,0,0,8">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding MainText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding SecondaryText}" FontSize="12"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                        <Label Text="{Binding StatusText}" FontSize="12"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+
+                                        <HorizontalStackLayout Spacing="8" IsVisible="{Binding CanDecide}">
+                                            <Button Text="Aprovar"
+                                                    BackgroundColor="#16A34A"
+                                                    TextColor="White"
+                                                    Clicked="OnApprovePayoutClicked"
+                                                    CommandParameter="{Binding RequestId}" />
+                                            <Button Text="Reprovar"
+                                                    BackgroundColor="#DC2626"
+                                                    TextColor="White"
+                                                    Clicked="OnRejectPayoutClicked"
+                                                    CommandParameter="{Binding RequestId}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Usuarios -->
+            <Border x:Name="UsersSection"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="14"
+                    IsVisible="False">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Usuarios" FontAttributes="Bold" VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="Adicionar usuario"
+                                Clicked="OnAddUserClicked" />
+                    </Grid>
+
+                    <Entry x:Name="SearchUserEntry"
+                           Placeholder="Buscar por nome, email ou uid"
+                           TextChanged="OnUserSearchChanged" />
+
+                    <CollectionView x:Name="UsersList"
+                                    SelectionMode="None"
+                                    EmptyView="Nenhum usuario encontrado.">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                        StrokeThickness="1"
+                                        Padding="10"
+                                        Margin="0,0,0,8">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding MainText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding SubText}" FontSize="12"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                        <Label Text="{Binding StatusText}" FontSize="12"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+
+                                        <HorizontalStackLayout Spacing="6" IsVisible="{Binding CanModerate}">
+                                            <Button Text="Ativar"
+                                                    Clicked="OnActivateUserClicked"
+                                                    CommandParameter="{Binding Uid}" />
+                                            <Button Text="Ban 7 dias"
+                                                    Clicked="OnBanUserClicked"
+                                                    CommandParameter="{Binding Uid}" />
+                                            <Button Text="Suspender"
+                                                    BackgroundColor="#DC2626"
+                                                    TextColor="White"
+                                                    Clicked="OnSuspendUserClicked"
+                                                    CommandParameter="{Binding Uid}" />
+                                            <Button Text="Remover"
+                                                    BackgroundColor="#7F1D1D"
+                                                    TextColor="White"
+                                                    Clicked="OnRemoveUserClicked"
+                                                    CommandParameter="{Binding Uid}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Comunidade -->
+            <Border x:Name="CommunitySection"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="14"
+                    IsVisible="False">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Comunidade" FontAttributes="Bold" />
+                    <Label Text="Moderacao: remover episodio especifico ou excluir serie inteira."
+                           FontSize="12"
+                           TextColor="{StaticResource AppMutedTextColor}" />
+
+                    <CollectionView x:Name="CommunitySeriesList"
+                                    SelectionMode="None"
+                                    EmptyView="Sem series na comunidade.">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                        StrokeThickness="1"
+                                        Padding="10"
+                                        Margin="0,0,0,8">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding MainText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding SubText}" FontSize="12"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Button Text="Remover episodio"
+                                                    Clicked="OnDeleteCommunityEpisodeClicked"
+                                                    CommandParameter="{Binding .}" />
+                                            <Button Text="Excluir serie"
+                                                    BackgroundColor="#DC2626"
+                                                    TextColor="White"
+                                                    Clicked="OnDeleteCommunitySeriesClicked"
+                                                    CommandParameter="{Binding .}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Discover -->
+            <Border x:Name="DramasSection"
+                    Style="{StaticResource CardBorderStyle}"
+                    Padding="14"
+                    IsVisible="False">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Discover (catalogo de dramas)" FontAttributes="Bold" VerticalOptions="Center" />
+                        <Button Grid.Column="1"
+                                Text="Adicionar drama"
+                                Clicked="OnAddDramaClicked" />
+                    </Grid>
+
+                    <CollectionView x:Name="DramaList"
+                                    SelectionMode="None"
+                                    EmptyView="Sem dramas no catalogo.">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
+                                        StrokeThickness="1"
+                                        Padding="10"
+                                        Margin="0,0,0,8">
+                                    <VerticalStackLayout Spacing="6">
+                                        <Label Text="{Binding MainText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding SubText}" FontSize="12"
+                                               TextColor="{StaticResource AppMutedTextColor}" />
+                                        <HorizontalStackLayout Spacing="8">
+                                            <Button Text="Add episodio"
+                                                    Clicked="OnAddDramaEpisodeClicked"
+                                                    CommandParameter="{Binding .}" />
+                                            <Button Text="Remover episodio"
+                                                    Clicked="OnRemoveDramaEpisodeClicked"
+                                                    CommandParameter="{Binding .}" />
+                                            <Button Text="Excluir drama"
+                                                    BackgroundColor="#DC2626"
+                                                    TextColor="White"
+                                                    Clicked="OnDeleteDramaClicked"
+                                                    CommandParameter="{Binding .}" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

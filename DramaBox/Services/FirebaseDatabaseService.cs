@@ -1413,6 +1413,664 @@ public sealed class FirebaseDatabaseService
         return (true, "OK");
     }
 
+    // ============================================================
+    // ADMIN - PAYOUTS / USERS / MODERATION / CATALOG / COMMUNITY
+    // ============================================================
+
+    public sealed class CreatorPayoutRequest
+    {
+        public string RequestId { get; set; } = "";
+        public string Uid { get; set; } = "";
+        public string CreatorName { get; set; } = "";
+        public string CreatorEmail { get; set; } = "";
+        public string PixKey { get; set; } = "";
+        public double AmountCents { get; set; } = 0;
+        public string Status { get; set; } = "pending"; // pending|approved|rejected
+        public string AdminNote { get; set; } = "";
+        public long CreatedAtUnix { get; set; }
+        public long DecidedAtUnix { get; set; }
+        public string DecidedBy { get; set; } = "";
+    }
+
+    public sealed class UserModeration
+    {
+        public string Uid { get; set; } = "";
+        public string Status { get; set; } = "active"; // active|banned_until|suspended_permanent|removed
+        public string Reason { get; set; } = "";
+        public long BanUntilUnix { get; set; }
+        public long UpdatedAtUnix { get; set; }
+        public string UpdatedBy { get; set; } = "";
+    }
+
+    public sealed class AdminUserSummary
+    {
+        public string Uid { get; set; } = "";
+        public string Nome { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Telefone { get; set; } = "";
+        public string Plano { get; set; } = "free";
+        public long CreatedAtUnix { get; set; }
+        public int Coins { get; set; }
+        public UserModeration Moderation { get; set; } = new();
+    }
+
+    private static string NormalizeModerationStatus(string? value)
+    {
+        var status = (value ?? "").Trim().ToLowerInvariant();
+        return status switch
+        {
+            "active" => "active",
+            "banned" => "banned_until",
+            "banned_until" => "banned_until",
+            "ban7d" => "banned_until",
+            "suspended" => "suspended_permanent",
+            "suspended_permanent" => "suspended_permanent",
+            "removed" => "removed",
+            _ => "active"
+        };
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement element, string name, out JsonElement value)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var p in element.EnumerateObject())
+            {
+                if (string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = p.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static T? DeserializeElement<T>(JsonElement element)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(element.GetRawText(), JsonWeb);
+        }
+        catch
+        {
+            return default;
+        }
+    }
+
+    // ---------- payouts ----------
+
+    public async Task<List<CreatorPayoutRequest>> GetAllPayoutRequestsAsync(string? idToken = null)
+    {
+        var dict = await GetAsync<Dictionary<string, CreatorPayoutRequest>>("admin/payoutRequests", idToken)
+                   ?? new Dictionary<string, CreatorPayoutRequest>();
+
+        foreach (var kv in dict)
+        {
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.RequestId))
+                kv.Value.RequestId = kv.Key;
+
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.Status))
+                kv.Value.Status = "pending";
+        }
+
+        return dict.Values
+            .Where(x => x != null)
+            .OrderByDescending(x => x.CreatedAtUnix)
+            .ToList();
+    }
+
+    public async Task<List<CreatorPayoutRequest>> GetUserPayoutRequestsAsync(string uid, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(uid))
+            return new();
+
+        var dict = await GetAsync<Dictionary<string, CreatorPayoutRequest>>($"users/{uid}/payoutRequests", idToken)
+                   ?? new Dictionary<string, CreatorPayoutRequest>();
+
+        foreach (var kv in dict)
+        {
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.RequestId))
+                kv.Value.RequestId = kv.Key;
+
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.Uid))
+                kv.Value.Uid = uid;
+
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.Status))
+                kv.Value.Status = "pending";
+        }
+
+        return dict.Values
+            .Where(x => x != null)
+            .OrderByDescending(x => x.CreatedAtUnix)
+            .ToList();
+    }
+
+    public async Task<CreatorPayoutRequest?> GetLatestUserPayoutRequestAsync(string uid, string? idToken = null)
+    {
+        var all = await GetUserPayoutRequestsAsync(uid, idToken);
+        return all.OrderByDescending(x => x.CreatedAtUnix).FirstOrDefault();
+    }
+
+    public async Task<(bool ok, string message)> CreatePayoutRequestAsync(
+        string uid,
+        string creatorName,
+        string creatorEmail,
+        string pixKey,
+        double amountCents,
+        string? idToken = null
+    )
+    {
+        uid = (uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(uid))
+            return (false, "Uid inválido.");
+
+        amountCents = Math.Max(0, amountCents);
+        if (amountCents <= 0)
+            return (false, "Saldo insuficiente para solicitar saque.");
+
+        var existing = await GetUserPayoutRequestsAsync(uid, idToken);
+        if (existing.Any(x => string.Equals(x.Status, "pending", StringComparison.OrdinalIgnoreCase)))
+            return (false, "Você já possui uma solicitação pendente.");
+
+        var now = NowUnix();
+        var requestId = $"{now}_{Guid.NewGuid():N}";
+
+        var req = new CreatorPayoutRequest
+        {
+            RequestId = requestId,
+            Uid = uid,
+            CreatorName = (creatorName ?? "").Trim(),
+            CreatorEmail = (creatorEmail ?? "").Trim(),
+            PixKey = (pixKey ?? "").Trim(),
+            AmountCents = amountCents,
+            Status = "pending",
+            CreatedAtUnix = now
+        };
+
+        var patch = new Dictionary<string, object?>
+        {
+            [$"admin/payoutRequests/{requestId}"] = req,
+            [$"users/{uid}/payoutRequests/{requestId}"] = req,
+            [$"community/earnings/creators/{uid}/lastPayoutRequestAtUnix"] = now
+        };
+
+        return await PatchAsync("", patch, idToken);
+    }
+
+    public async Task<(bool ok, string message)> DecidePayoutRequestAsync(
+        string requestId,
+        string adminUid,
+        bool approve,
+        string? adminNote = null,
+        string? idToken = null
+    )
+    {
+        requestId = (requestId ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(requestId))
+            return (false, "RequestId inválido.");
+
+        var req = await GetAsync<CreatorPayoutRequest>($"admin/payoutRequests/{requestId}", idToken);
+        if (req == null)
+            return (false, "Solicitação não encontrada.");
+
+        if (!string.Equals(req.Status, "pending", StringComparison.OrdinalIgnoreCase))
+            return (false, "Essa solicitação já foi decidida.");
+
+        var uid = (req.Uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(uid))
+            return (false, "Solicitação inválida (sem UID).");
+
+        var now = NowUnix();
+        var status = approve ? "approved" : "rejected";
+        var note = (adminNote ?? "").Trim();
+
+        var patch = new Dictionary<string, object?>
+        {
+            [$"admin/payoutRequests/{requestId}/status"] = status,
+            [$"admin/payoutRequests/{requestId}/decidedAtUnix"] = now,
+            [$"admin/payoutRequests/{requestId}/decidedBy"] = adminUid ?? "",
+            [$"admin/payoutRequests/{requestId}/adminNote"] = note,
+
+            [$"users/{uid}/payoutRequests/{requestId}/status"] = status,
+            [$"users/{uid}/payoutRequests/{requestId}/decidedAtUnix"] = now,
+            [$"users/{uid}/payoutRequests/{requestId}/decidedBy"] = adminUid ?? "",
+            [$"users/{uid}/payoutRequests/{requestId}/adminNote"] = note
+        };
+
+        if (approve)
+        {
+            patch[$"community/earnings/creators/{uid}/centsTotal"] = 0.0;
+            patch[$"community/earnings/creators/{uid}/updatedAtUnix"] = now;
+            patch[$"community/earnings/creators/{uid}/lastPayoutAtUnix"] = now;
+            patch[$"community/earnings/creators/{uid}/lastPayoutRequestId"] = requestId;
+            patch[$"community/earnings/creators/{uid}/payoutHistory/{requestId}"] = new Dictionary<string, object?>
+            {
+                ["amountCents"] = req.AmountCents,
+                ["status"] = status,
+                ["decidedAtUnix"] = now,
+                ["decidedBy"] = adminUid ?? "",
+                ["adminNote"] = note
+            };
+        }
+
+        return await PatchAsync("", patch, idToken);
+    }
+
+    // ---------- user moderation ----------
+
+    public async Task<UserModeration> GetUserModerationAsync(string uid, string? idToken = null)
+    {
+        uid = (uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(uid))
+            return new UserModeration { Status = "removed" };
+
+        var mod = await GetAsync<UserModeration>($"admin/users/moderation/{uid}", idToken)
+                  ?? await GetAsync<UserModeration>($"users/{uid}/moderation", idToken)
+                  ?? new UserModeration
+                  {
+                      Uid = uid,
+                      Status = "active",
+                      UpdatedAtUnix = NowUnix()
+                  };
+
+        mod.Uid = uid;
+        mod.Status = NormalizeModerationStatus(mod.Status);
+        if (mod.UpdatedAtUnix <= 0) mod.UpdatedAtUnix = NowUnix();
+        return mod;
+    }
+
+    public async Task<(bool ok, string message)> SetUserModerationAsync(
+        string uid,
+        string status,
+        string adminUid,
+        string reason,
+        long banUntilUnix = 0,
+        string? idToken = null
+    )
+    {
+        uid = (uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(uid))
+            return (false, "Uid inválido.");
+
+        status = NormalizeModerationStatus(status);
+        if (status != "banned_until")
+            banUntilUnix = 0;
+
+        var mod = new UserModeration
+        {
+            Uid = uid,
+            Status = status,
+            Reason = (reason ?? "").Trim(),
+            BanUntilUnix = Math.Max(0, banUntilUnix),
+            UpdatedAtUnix = NowUnix(),
+            UpdatedBy = (adminUid ?? "").Trim()
+        };
+
+        var patch = new Dictionary<string, object?>
+        {
+            [$"admin/users/moderation/{uid}"] = mod,
+            [$"users/{uid}/moderation"] = mod
+        };
+
+        return await PatchAsync("", patch, idToken);
+    }
+
+    public Task<(bool ok, string message)> BanUserForDaysAsync(
+        string uid,
+        string adminUid,
+        int days = 7,
+        string? reason = null,
+        string? idToken = null
+    )
+    {
+        if (days <= 0) days = 7;
+        var until = NowUnix() + (long)days * 24L * 60L * 60L;
+        return SetUserModerationAsync(
+            uid: uid,
+            status: "banned_until",
+            adminUid: adminUid,
+            reason: string.IsNullOrWhiteSpace(reason) ? $"Banido por {days} dias." : reason!,
+            banUntilUnix: until,
+            idToken: idToken
+        );
+    }
+
+    public Task<(bool ok, string message)> SuspendUserPermanentlyAsync(
+        string uid,
+        string adminUid,
+        string? reason = null,
+        string? idToken = null
+    )
+    {
+        return SetUserModerationAsync(
+            uid: uid,
+            status: "suspended_permanent",
+            adminUid: adminUid,
+            reason: string.IsNullOrWhiteSpace(reason) ? "Suspenso permanentemente." : reason!,
+            banUntilUnix: 0,
+            idToken: idToken
+        );
+    }
+
+    public async Task<(bool ok, string message)> RemoveUserAsync(
+        string uid,
+        string adminUid,
+        string? reason = null,
+        string? idToken = null
+    )
+    {
+        var set = await SetUserModerationAsync(
+            uid: uid,
+            status: "removed",
+            adminUid: adminUid,
+            reason: string.IsNullOrWhiteSpace(reason) ? "Conta removida pelo administrador." : reason!,
+            banUntilUnix: 0,
+            idToken: idToken
+        );
+
+        if (!set.ok)
+            return set;
+
+        var del = await DeleteAsync($"users/{uid}", idToken);
+        if (!del.ok)
+            return (false, $"Conta marcada como removida, mas falhou limpar dados: {del.message}");
+
+        return (true, "OK");
+    }
+
+    public async Task<(bool allowed, string message, UserModeration moderation)> ValidateUserAccessAsync(string uid, string? idToken = null)
+    {
+        uid = (uid ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(uid))
+            return (false, "Conta inválida.", new UserModeration { Status = "removed" });
+
+        var mod = await GetUserModerationAsync(uid, idToken);
+        var now = NowUnix();
+        mod.Status = NormalizeModerationStatus(mod.Status);
+
+        if (mod.Status == "active")
+            return (true, "OK", mod);
+
+        if (mod.Status == "banned_until")
+        {
+            if (mod.BanUntilUnix > now)
+            {
+                var dt = DateTimeOffset.FromUnixTimeSeconds(mod.BanUntilUnix).ToLocalTime().DateTime;
+                return (false, $"Sua conta está banida até {dt:dd/MM/yyyy HH:mm}.", mod);
+            }
+
+            await SetUserModerationAsync(
+                uid: uid,
+                status: "active",
+                adminUid: "system",
+                reason: "Banimento expirado automaticamente.",
+                banUntilUnix: 0,
+                idToken: idToken
+            );
+
+            var refreshed = await GetUserModerationAsync(uid, idToken);
+            return (true, "OK", refreshed);
+        }
+
+        if (mod.Status == "suspended_permanent")
+            return (false, "Sua conta foi suspensa permanentemente.", mod);
+
+        if (mod.Status == "removed")
+            return (false, "Sua conta foi removida.", mod);
+
+        return (true, "OK", mod);
+    }
+
+    public async Task<List<AdminUserSummary>> GetAllUsersForAdminAsync(string? idToken = null)
+    {
+        var users = await GetAsync<Dictionary<string, JsonElement>>("users", idToken)
+                    ?? new Dictionary<string, JsonElement>();
+
+        var modMap = await GetAsync<Dictionary<string, UserModeration>>("admin/users/moderation", idToken)
+                     ?? new Dictionary<string, UserModeration>();
+
+        var list = new List<AdminUserSummary>();
+
+        foreach (var kv in users)
+        {
+            var uid = (kv.Key ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(uid))
+                continue;
+
+            var node = kv.Value;
+
+            UserProfile? profile = null;
+            var coins = 0;
+
+            if (node.ValueKind == JsonValueKind.Object)
+            {
+                if (TryGetPropertyIgnoreCase(node, "profile", out var profileEl) && profileEl.ValueKind == JsonValueKind.Object)
+                    profile = DeserializeElement<UserProfile>(profileEl);
+
+                if (TryGetPropertyIgnoreCase(node, "wallet", out var walletEl) && walletEl.ValueKind == JsonValueKind.Object)
+                {
+                    if (TryGetPropertyIgnoreCase(walletEl, "coins", out var coinsEl))
+                    {
+                        if (coinsEl.ValueKind == JsonValueKind.Number && coinsEl.TryGetInt32(out var cNum))
+                            coins = cNum;
+                        else if (coinsEl.ValueKind == JsonValueKind.String && int.TryParse(coinsEl.GetString(), out var cStr))
+                            coins = cStr;
+                    }
+                }
+            }
+
+            var moderation = modMap.TryGetValue(uid, out var m) && m != null
+                ? m
+                : new UserModeration { Uid = uid, Status = "active" };
+
+            moderation.Uid = uid;
+            moderation.Status = NormalizeModerationStatus(moderation.Status);
+
+            list.Add(new AdminUserSummary
+            {
+                Uid = uid,
+                Nome = profile?.Nome ?? "",
+                Email = profile?.Email ?? "",
+                Telefone = profile?.Telefone ?? "",
+                Plano = string.IsNullOrWhiteSpace(profile?.Plano) ? "free" : profile!.Plano,
+                CreatedAtUnix = profile?.CreatedAtUnix ?? 0,
+                Coins = Math.Max(0, coins),
+                Moderation = moderation
+            });
+        }
+
+        foreach (var kv in modMap)
+        {
+            var uid = (kv.Key ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(uid))
+                continue;
+
+            if (list.Any(x => x.Uid == uid))
+                continue;
+
+            var mod = kv.Value ?? new UserModeration { Uid = uid, Status = "active" };
+            mod.Uid = uid;
+            mod.Status = NormalizeModerationStatus(mod.Status);
+
+            list.Add(new AdminUserSummary
+            {
+                Uid = uid,
+                Moderation = mod
+            });
+        }
+
+        return list
+            .OrderBy(x => string.IsNullOrWhiteSpace(x.Nome) ? (x.Email ?? x.Uid) : x.Nome)
+            .ThenBy(x => x.Uid)
+            .ToList();
+    }
+
+    // ---------- community moderation ----------
+
+    public async Task<List<CommunitySeries>> GetAllCommunitySeriesAdminAsync(string? idToken = null)
+    {
+        var dict = await GetAsync<Dictionary<string, CommunitySeries>>("community/series", idToken)
+                   ?? new Dictionary<string, CommunitySeries>();
+
+        foreach (var kv in dict)
+        {
+            if (kv.Value != null && string.IsNullOrWhiteSpace(kv.Value.Id))
+                kv.Value.Id = kv.Key;
+        }
+
+        return dict.Values
+            .Where(x => x != null)
+            .OrderByDescending(x => x.UpdatedAtUnix)
+            .ThenBy(x => x.Title)
+            .ToList();
+    }
+
+    public async Task<(bool ok, string message)> DeleteCommunityEpisodeAdminAsync(
+        string seriesId,
+        string episodeId,
+        string? idToken = null
+    )
+    {
+        if (string.IsNullOrWhiteSpace(seriesId))
+            return (false, "SeriesId inválido.");
+        if (string.IsNullOrWhiteSpace(episodeId))
+            return (false, "EpisodeId inválido.");
+
+        var del = await DeleteAsync($"community/series/{seriesId}/episodes/{episodeId}", idToken);
+        if (!del.ok) return del;
+
+        await PatchAsync($"community/series/{seriesId}", new { updatedAtUnix = NowUnix() }, idToken);
+        return (true, "OK");
+    }
+
+    public async Task<(bool ok, string message)> DeleteCommunitySeriesAdminAsync(string seriesId, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(seriesId))
+            return (false, "SeriesId inválido.");
+
+        var series = await GetCommunitySeriesAsync(seriesId, idToken);
+        var creatorUid = (series?.CreatorUserId ?? "").Trim();
+
+        var patch = new Dictionary<string, object?>
+        {
+            [$"community/series/{seriesId}"] = null,
+            [$"community/metrics/series/{seriesId}"] = null
+        };
+
+        if (!string.IsNullOrWhiteSpace(creatorUid))
+        {
+            var seriesCents = await GetAsync<double?>($"community/earnings/creators/{creatorUid}/series/{seriesId}/centsTotal", idToken) ?? 0.0;
+            var totalCents = await GetAsync<double?>($"community/earnings/creators/{creatorUid}/centsTotal", idToken) ?? 0.0;
+            var nextTotal = Math.Max(0.0, totalCents - Math.Max(0.0, seriesCents));
+
+            patch[$"users/{creatorUid}/createdSeries/{seriesId}"] = null;
+            patch[$"community/earnings/creators/{creatorUid}/series/{seriesId}"] = null;
+            patch[$"community/earnings/creators/{creatorUid}/centsTotal"] = nextTotal;
+            patch[$"community/earnings/creators/{creatorUid}/updatedAtUnix"] = NowUnix();
+        }
+
+        return await PatchAsync("", patch, idToken);
+    }
+
+    // ---------- discover catalog admin ----------
+
+    private static object BuildDramaPayload(DramaSeries drama)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["title"] = drama.Title ?? "",
+            ["subtitle"] = drama.Subtitle ?? "",
+            ["coverUrl"] = drama.CoverUrl ?? "",
+            ["posterUrl"] = drama.PosterUrl ?? "",
+            ["categories"] = drama.Categories ?? Array.Empty<string>(),
+            ["isFeatured"] = drama.IsFeatured,
+            ["isVip"] = drama.IsVip,
+            ["topRank"] = drama.TopRank,
+            ["updatedAtUnix"] = drama.UpdatedAtUnix <= 0 ? NowUnix() : drama.UpdatedAtUnix
+        };
+    }
+
+    private static object BuildDramaEpisodePayload(DramaEpisode ep)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["number"] = ep.Number <= 0 ? 1 : ep.Number,
+            ["title"] = ep.Title ?? "",
+            ["videoUrl"] = ep.VideoUrl ?? "",
+            ["thumbUrl"] = ep.ThumbUrl ?? "",
+            ["durationSec"] = Math.Max(0, ep.DurationSec)
+        };
+    }
+
+    public async Task<(bool ok, string message, string dramaId)> UpsertDramaSeriesAsync(DramaSeries drama, string? idToken = null)
+    {
+        if (drama == null)
+            return (false, "Drama inválido.", "");
+
+        if (string.IsNullOrWhiteSpace(drama.Id))
+            drama.Id = Guid.NewGuid().ToString("N");
+
+        drama.UpdatedAtUnix = NowUnix();
+
+        var put = await PutAsync($"catalog/dramas/{drama.Id}", BuildDramaPayload(drama), idToken);
+        return (put.ok, put.message, drama.Id);
+    }
+
+    public async Task<(bool ok, string message, string episodeId)> UpsertDramaEpisodeAsync(
+        string dramaId,
+        DramaEpisode episode,
+        string? idToken = null
+    )
+    {
+        if (string.IsNullOrWhiteSpace(dramaId))
+            return (false, "DramaId inválido.", "");
+        if (episode == null)
+            return (false, "Episódio inválido.", "");
+
+        if (string.IsNullOrWhiteSpace(episode.Id))
+            episode.Id = Guid.NewGuid().ToString("N");
+
+        if (episode.Number <= 0)
+        {
+            var all = await GetEpisodesAsync(dramaId, idToken);
+            episode.Number = all.Count == 0 ? 1 : (all.Max(x => x.Number) + 1);
+        }
+
+        var patch = new Dictionary<string, object?>
+        {
+            [$"catalog/dramas/{dramaId}/episodes/{episode.Id}"] = BuildDramaEpisodePayload(episode),
+            [$"catalog/dramas/{dramaId}/updatedAtUnix"] = NowUnix()
+        };
+
+        var r = await PatchAsync("", patch, idToken);
+        return (r.ok, r.message, episode.Id);
+    }
+
+    public async Task<(bool ok, string message)> DeleteDramaEpisodeAsync(string dramaId, string episodeId, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(dramaId))
+            return (false, "DramaId inválido.");
+        if (string.IsNullOrWhiteSpace(episodeId))
+            return (false, "EpisodeId inválido.");
+
+        var del = await DeleteAsync($"catalog/dramas/{dramaId}/episodes/{episodeId}", idToken);
+        if (!del.ok) return del;
+
+        await PatchAsync($"catalog/dramas/{dramaId}", new { updatedAtUnix = NowUnix() }, idToken);
+        return (true, "OK");
+    }
+
+    public async Task<(bool ok, string message)> DeleteDramaSeriesAsync(string dramaId, string? idToken = null)
+    {
+        if (string.IsNullOrWhiteSpace(dramaId))
+            return (false, "DramaId inválido.");
+
+        return await DeleteAsync($"catalog/dramas/{dramaId}", idToken);
+    }
+
 
     // ============================================================
     // AFFILIATES (compatível com seu BD atual)

@@ -52,11 +52,20 @@ public partial class App : Application
                                         result.LocalId,
                                         result.Email);
 
-                    var profile = await _db.GetUserProfileAsync(result.LocalId, result.IdToken);
-                    _session.SetProfile(profile);
+                    var access = await _db.ValidateUserAccessAsync(result.LocalId, result.IdToken);
+                    if (!access.allowed)
+                    {
+                        _session.Clear();
+                        _session.ClearCredentials();
+                    }
+                    else
+                    {
+                        var profile = await _db.GetUserProfileAsync(result.LocalId, result.IdToken);
+                        _session.SetProfile(profile);
 
-                    await SetRootAsync(new AppShell());
-                    return;
+                        await SetRootAsync(new AppShell());
+                        return;
+                    }
                 }
             }
         }

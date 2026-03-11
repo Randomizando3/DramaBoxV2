@@ -1,4 +1,4 @@
-using DramaBox.Services;
+ï»¿using DramaBox.Services;
 
 namespace DramaBox.Views;
 
@@ -52,9 +52,6 @@ public partial class LoginView : ContentPage
                 return;
             }
 
-            // (Opcional) se tiver botão/loader, desabilite aqui
-            // LoginButton.IsEnabled = false;
-
             var (ok, message, result) = await _auth.SignInAsync(email, password);
             if (!ok || result == null)
             {
@@ -64,21 +61,23 @@ public partial class LoginView : ContentPage
 
             _session.SetSession(result.IdToken, result.RefreshToken, result.LocalId, result.Email);
 
-            // Salva credenciais para relogin automático
+            var access = await _db.ValidateUserAccessAsync(result.LocalId, result.IdToken);
+            if (!access.allowed)
+            {
+                _session.Clear();
+                await DisplayAlert("Login", access.message, "OK");
+                return;
+            }
+
             _session.SaveCredentials(email, password);
 
-            // IMPORTANTE: buscar perfil ANTES de trocar o MainPage
             var profile = await _db.GetUserProfileAsync(result.LocalId, result.IdToken);
             _session.SetProfile(profile);
 
-            // Troca root na MainThread e NÃO chama Shell.Current.GoToAsync aqui
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
                 Application.Current!.MainPage = new AppShell();
             });
-
-            // Se você precisa MUITO forçar rota, faça isso no AppShell.OnAppearing
-            // ou via Dispatcher após o Shell existir (mas recomendo evitar).
         }
         catch
         {
@@ -87,7 +86,6 @@ public partial class LoginView : ContentPage
         finally
         {
             _isBusy = false;
-            // LoginButton.IsEnabled = true;
         }
     }
 

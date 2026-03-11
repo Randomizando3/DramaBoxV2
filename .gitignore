@@ -1,26 +1,31 @@
-# --- Visual Studio ---
-# A pasta temporária padrão do VS
+﻿# --- Visual Studio ---
 .vs/
 **/.vs/
-
-# Ignorar especificamente se a pasta se chamar "web.vs"
 web.vs/
 
-# --- Build e Compilação ---
-# Ignora binários e arquivos objetos gerados automaticamente
+# --- Build outputs ---
 bin/
 obj/
 
-# --- Dependências Web ---
-# Se estiver usando Node.js/npm
+# --- Web deps ---
 node_modules/
 
-# --- Arquivos de Ambiente e Logs ---
-# Segurança: nunca suba arquivos .env com senhas
+# --- Secrets and logs ---
 .env
+.env.*
 *.log
-config/FirebaseConfig.cs
 
-# --- Arquivos de Sistema Operacional ---
+# Firebase and mobile key material
+**/Config/FirebaseConfig.cs
+**/config/FirebaseConfig.cs
+**/google-services.json
+**/GoogleService-Info.plist
+**/*.keystore
+**/*.jks
+**/*.p12
+**/*.pem
+**/keystore/
+
+# --- OS files ---
 .DS_Store
 Thumbs.db

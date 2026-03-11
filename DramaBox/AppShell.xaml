@@ -116,6 +116,14 @@
              Title="Afiliados"
              Icon="profile.png"
              ContentTemplate="{DataTemplate views:AffiliatesView}" />
+
+        <ShellContent
+             x:Name="AdminTab"
+             Route="admin"
+             Title="Admin"
+             Icon="profile.png"
+             IsVisible="False"
+             ContentTemplate="{DataTemplate views:AdminView}" />
     </TabBar>
 
 </Shell>

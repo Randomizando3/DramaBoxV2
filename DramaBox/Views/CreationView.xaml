@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="DramaBox.Views.CreationView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -11,7 +11,7 @@
     <Grid RowDefinitions="Auto,*"
           BackgroundColor="{AppThemeBinding Light=#F4F6FB, Dark=#0B1220}">
 
-        <!-- (Topo removido como você pediu) -->
+        <!-- (Topo removido como vocÃª pediu) -->
         <Grid Grid.Row="0" HeightRequest="6" />
 
         <ScrollView Grid.Row="1">
@@ -55,7 +55,7 @@
                             </Border>-->
                         </Grid>
 
-                        <!-- MÉTRICAS (3 cards) -->
+                        <!-- MÃ‰TRICAS (3 cards) -->
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
 
                             <!-- Receita -->
@@ -68,7 +68,7 @@
                                     <RoundRectangle CornerRadius="14"/>
                                 </Border.StrokeShape>
 
-                                <Grid RowDefinitions="Auto,Auto,Auto"
+                                <Grid RowDefinitions="Auto,Auto,Auto,Auto"
                                       ColumnDefinitions="*,Auto"
                                       RowSpacing="6">
 
@@ -101,13 +101,21 @@
 
                                     <Label Grid.Row="2"
                                            Grid.ColumnSpan="2"
-                                           Text="Toque para sacar (mín. R$ 50)"
+                                           Text="Toque para sacar (min. R$ 50)"
                                            FontSize="11.5"
                                            FontAttributes="Bold"
                                            TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
+
+                                    <Label x:Name="PayoutStatusLabel"
+                                           Grid.Row="3"
+                                           Grid.ColumnSpan="2"
+                                           Text="Ultimo saque: sem solicitacoes"
+                                           FontSize="11.5"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light=#475569, Dark=#AAB3C2}"/>
                                 </Grid>
 
-                                <!-- (opcional) deixar clicável -->
+                                <!-- (opcional) deixar clicÃ¡vel -->
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnRevenueTapped"/>
                                 </Border.GestureRecognizers>
@@ -140,7 +148,7 @@
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="10"/>
                                         </Border.StrokeShape>
-                                        <Label Text="♥"
+                                        <Label Text="â™¥"
                                                FontSize="12"
                                                FontAttributes="Bold"
                                                TextColor="{AppThemeBinding Light=#2563EB, Dark=#93C5FD}"/>
@@ -190,7 +198,7 @@
                                         <Border.StrokeShape>
                                             <RoundRectangle CornerRadius="10"/>
                                         </Border.StrokeShape>
-                                        <Label Text="↗"
+                                        <Label Text="â†—"
                                                FontSize="12"
                                                FontAttributes="Bold"
                                                TextColor="{AppThemeBinding Light=#2563EB, Dark=#93C5FD}"/>
@@ -218,7 +226,7 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- MINHAS SÉRIES (grid 2 colunas) -->
+                <!-- MINHAS SÃ‰RIES (grid 2 colunas) -->
                 <Border Stroke="{AppThemeBinding Light=#E2E8F0, Dark=#1F2937}"
                         StrokeThickness="1"
                         BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#0F172A}">
@@ -229,14 +237,14 @@
                     <VerticalStackLayout Spacing="10" Padding="14">
 
                         <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center">
-                            <Label Text="Minhas séries"
+                            <Label Text="Minhas sÃ©ries"
                                    FontSize="15"
                                    FontAttributes="Bold"
                                    TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
 
-                            <!-- mantém a função de refresh -->
+                            <!-- mantÃ©m a funÃ§Ã£o de refresh -->
                             <Button Grid.Column="1"
-                                    Text="⟳"
+                                    Text="âŸ³"
                                     FontSize="15"
                                     Padding="0,-4,0,0"
                                     BackgroundColor="Transparent"
@@ -256,7 +264,7 @@
                             </CollectionView.ItemsLayout>
 
                             <CollectionView.Header>
-                                <!-- Tile "Nova série" -->
+                                <!-- Tile "Nova sÃ©rie" -->
                                 <Grid Padding="0,0,0,10">
                                     <Border Stroke="{AppThemeBinding Light=#CBD5E1, Dark=#334155}"
                                             StrokeThickness="2"
@@ -283,7 +291,7 @@
                                                            TextColor="{AppThemeBinding Light=#0F172A, Dark=#E5E7EB}"/>
                                                 </Border>
 
-                                                <Label Text="Nova série"
+                                                <Label Text="Nova sÃ©rie"
                                                        FontSize="12.5"
                                                        FontAttributes="Bold"
                                                        TextColor="{AppThemeBinding Light=#64748B, Dark=#9CA3AF}"/>
@@ -309,7 +317,7 @@
 
                                         <Grid HeightRequest="170">
 
-                                            <!-- imagem (se null/vazia, fica só o fundo) -->
+                                            <!-- imagem (se null/vazia, fica sÃ³ o fundo) -->
                                             <Image Source="{Binding CoverUrl}"
                                                    Aspect="AspectFill"
                                                    Opacity="1" />
@@ -363,3 +371,4 @@
         </ScrollView>
     </Grid>
 </ContentPage>
+

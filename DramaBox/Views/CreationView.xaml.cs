@@ -1,7 +1,8 @@
-using System;
+ï»¿using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using DramaBox.Models;
 using DramaBox.Services;
@@ -10,10 +11,13 @@ namespace DramaBox.Views;
 
 public partial class CreationView : ContentPage
 {
+    private const double MinPayoutCents = 5000; // R$ 50,00
+
     private readonly SessionService _session;
     private readonly FirebaseDatabaseService _db;
 
     public ObservableCollection<MySeriesRow> MySeries { get; } = new();
+    private double _currentRevenueCents;
 
     public CreationView()
     {
@@ -52,11 +56,10 @@ public partial class CreationView : ContentPage
 
             var cover = string.IsNullOrWhiteSpace(s.CoverUrl) ? (s.PosterUrl ?? "") : s.CoverUrl;
             if (string.IsNullOrWhiteSpace(cover))
-                cover = null; // ? evita "Path inválido" no Windows
+                cover = null;
 
-            // texto estilo: "Drama • 8 eps" (se não tiver subtitle, mostra só eps)
             var sub = (s.Subtitle ?? "").Trim();
-            var epsText = string.IsNullOrWhiteSpace(sub) ? $"{eps.Count} eps" : $"{sub} • {eps.Count} eps";
+            var epsText = string.IsNullOrWhiteSpace(sub) ? $"{eps.Count} eps" : $"{sub} â€¢ {eps.Count} eps";
 
             MySeries.Add(new MySeriesRow
             {
@@ -69,7 +72,10 @@ public partial class CreationView : ContentPage
         }
 
         var cents = await _db.GetAsync<double?>($"community/earnings/creators/{uid}/centsTotal", _session.IdToken) ?? 0.0;
-        RevenueLabel.Text = ToBRLFromCents(cents);
+        _currentRevenueCents = Math.Max(0, cents);
+
+        RevenueLabel.Text = ToBRLFromCents(_currentRevenueCents);
+        await LoadPayoutStatusAsync(uid);
 
         foreach (var row in MySeries)
         {
@@ -84,6 +90,44 @@ public partial class CreationView : ContentPage
         SharesLabel.Text = ((long)Math.Round(totalShares)).ToString("N0", CultureInfo.GetCultureInfo("pt-BR"));
     }
 
+    private async Task LoadPayoutStatusAsync(string uid)
+    {
+        if (PayoutStatusLabel == null)
+            return;
+
+        var latest = await _db.GetLatestUserPayoutRequestAsync(uid, _session.IdToken);
+        if (latest == null)
+        {
+            PayoutStatusLabel.Text = "Ultimo saque: sem solicitacoes";
+            return;
+        }
+
+        var amount = ToBRLFromCents(latest.AmountCents);
+        var status = (latest.Status ?? "pending").Trim().ToLowerInvariant();
+
+        if (status == "approved")
+        {
+            var when = latest.DecidedAtUnix > 0
+                ? DateTimeOffset.FromUnixTimeSeconds(latest.DecidedAtUnix).ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                : "-";
+
+            PayoutStatusLabel.Text = $"Ultimo saque: aprovado ({amount}) em {when}";
+            return;
+        }
+
+        if (status == "rejected")
+        {
+            var when = latest.DecidedAtUnix > 0
+                ? DateTimeOffset.FromUnixTimeSeconds(latest.DecidedAtUnix).ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                : "-";
+
+            PayoutStatusLabel.Text = $"Ultimo saque: reprovado ({amount}) em {when}";
+            return;
+        }
+
+        PayoutStatusLabel.Text = $"Ultimo saque: pending ({amount})";
+    }
+
     private static string ToBRLFromCents(double cents)
     {
         var br = CultureInfo.GetCultureInfo("pt-BR");
@@ -94,11 +138,9 @@ public partial class CreationView : ContentPage
     private async void OnRefreshClicked(object sender, EventArgs e)
         => await LoadAsync();
 
-    // ? Header "Nova série" chama isso (mantém seu fluxo)
     private async void OnCreateSeriesTapped(object sender, EventArgs e)
         => await CreateSeriesFlowAsync();
 
-    // (caso você ainda tenha botão + em algum lugar)
     private async void OnCreateSeriesClicked(object sender, EventArgs e)
         => await CreateSeriesFlowAsync();
 
@@ -107,14 +149,14 @@ public partial class CreationView : ContentPage
         var uid = _session.UserId ?? "";
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "Voce precisa estar logado.", "OK");
             return;
         }
 
-        var title = await DisplayPromptAsync("Nova série", "Título da série:");
+        var title = await DisplayPromptAsync("Nova serie", "Titulo da serie:");
         if (string.IsNullOrWhiteSpace(title)) return;
 
-        var subtitle = await DisplayPromptAsync("Nova série", "Subtítulo (opcional):") ?? "";
+        var subtitle = await DisplayPromptAsync("Nova serie", "Subtitulo (opcional):") ?? "";
 
         var series = new CommunitySeries
         {
@@ -136,7 +178,6 @@ public partial class CreationView : ContentPage
             return;
         }
 
-        // ? abre direto o editor para adicionar capa/episódios
         await Navigation.PushAsync(new CreatorSeriesEditorPage(series.Id));
     }
 
@@ -149,10 +190,60 @@ public partial class CreationView : ContentPage
         await Navigation.PushAsync(new CreatorSeriesEditorPage(row.SeriesId));
     }
 
-    // (opcional) clique na receita
     private async void OnRevenueTapped(object sender, TappedEventArgs e)
     {
-        await DisplayAlert("Saques", "Saque (MVP): abrir fluxo de saque e validações (mín. R$ 50).", "OK");
+        var uid = _session.UserId ?? "";
+        if (string.IsNullOrWhiteSpace(uid))
+        {
+            await DisplayAlert("Saques", "Voce precisa estar logado.", "OK");
+            return;
+        }
+
+        if (_currentRevenueCents < MinPayoutCents)
+        {
+            await DisplayAlert(
+                "Saques",
+                $"Saldo atual: {ToBRLFromCents(_currentRevenueCents)}.\nMinimo para solicitar: {ToBRLFromCents(MinPayoutCents)}.",
+                "OK");
+            return;
+        }
+
+        var pix = await DisplayPromptAsync(
+            "Solicitar saque",
+            "Informe a chave PIX para pagamento:",
+            accept: "Continuar",
+            cancel: "Cancelar",
+            placeholder: "email, CPF, telefone ou aleatoria");
+
+        if (string.IsNullOrWhiteSpace(pix))
+            return;
+
+        var amountText = ToBRLFromCents(_currentRevenueCents);
+        var ok = await DisplayAlert(
+            "Confirmar saque",
+            $"Solicitar saque de {amountText}?",
+            "Solicitar",
+            "Cancelar");
+
+        if (!ok) return;
+
+        var req = await _db.CreatePayoutRequestAsync(
+            uid: uid,
+            creatorName: _session.Profile?.Nome ?? "",
+            creatorEmail: _session.Email ?? "",
+            pixKey: pix.Trim(),
+            amountCents: _currentRevenueCents,
+            idToken: _session.IdToken
+        );
+
+        if (!req.ok)
+        {
+            await DisplayAlert("Saques", req.message, "OK");
+            return;
+        }
+
+        await DisplayAlert("Saques", "Solicitacao enviada com status pending.", "OK");
+        await LoadAsync();
     }
 
     public sealed class MySeriesRow
@@ -160,7 +251,7 @@ public partial class CreationView : ContentPage
         public string SeriesId { get; set; } = "";
         public string Title { get; set; } = "";
         public string Subtitle { get; set; } = "";
-        public string? CoverUrl { get; set; } // ? nullable
+        public string? CoverUrl { get; set; }
         public string EpisodesText { get; set; } = "";
     }
 }
