@@ -1,28 +1,33 @@
 # DramaBoxV2
 
-Evolucao do projeto DramaBox, estruturada em .NET MAUI para uma experiencia mais completa de descoberta, comunidade, criacao e consumo de conteudo em video.
+## English
+DramaBoxV2 is an evolved .NET MAUI version of the DramaBox concept, expanding the product with community, creation, playlist, affiliate, and admin flows.
 
-## Modulos observados
+### Modules identified
+- Content discovery
+- Community and community series
+- Creation and series editing
+- Player and playlists
+- Profile and authentication
+- Affiliate and admin areas
 
-- Descoberta de conteudo
-- Comunidade e series da comunidade
-- Criacao e edicao de series
+### Run locally
+1. Open `DramaBox/DramaBox.sln` in Visual Studio 2022.
+2. Make sure the .NET MAUI workload is installed.
+3. Restore packages and run on the desired platform.
+
+## PortuguÃªs
+DramaBoxV2 Ã© uma versÃ£o evoluÃ­da em .NET MAUI do conceito DramaBox, ampliando o produto com fluxos de comunidade, criaÃ§Ã£o, playlists, afiliados e administraÃ§Ã£o.
+
+### MÃ³dulos identificados
+- Descoberta de conteÃºdo
+- Comunidade e sÃ©ries da comunidade
+- CriaÃ§Ã£o e ediÃ§Ã£o de sÃ©ries
 - Player e playlists
-- Perfil, login e administracao
-- Area de afiliados
+- Perfil e autenticaÃ§Ã£o
+- Ãreas de afiliados e administraÃ§Ã£o
 
-## Estrutura principal
-
-- `Views`: telas e fluxos principais do aplicativo
-- `Resources`: estilos, icones e assets visuais
-- `Platforms`: configuracoes para Android, iOS, Windows, Mac e Tizen
-
-## Como executar
-
+### Executando localmente
 1. Abra `DramaBox/DramaBox.sln` no Visual Studio 2022.
-2. Garanta a instalacao do workload do .NET MAUI.
-3. Restaure os pacotes e inicie pela plataforma desejada.
-
-## Status
-
-README inicial criado a partir das telas e da estrutura atual do repositorio.
+2. Garanta que o workload do .NET MAUI esteja instalado.
+3. Restaure os pacotes e execute na plataforma desejada.
