@@ -12,7 +12,7 @@ An evolved .NET MAUI version of the DramaBox concept with community, creation, p
 - Affiliate and admin areas
 
 ### Run locally
-1. Open `DramaBox/DramaBox.sln` in Visual Studio 2022.
+1. Open DramaBox/DramaBox.sln in Visual Studio 2022.
 2. Install the .NET MAUI workload.
 3. Restore packages and run on the desired platform.
 
@@ -28,6 +28,6 @@ Versão evoluída em .NET MAUI do conceito DramaBox, com fluxos de comunidade, c
 - Áreas de afiliados e administração
 
 ### Executando localmente
-1. Abra `DramaBox/DramaBox.sln` no Visual Studio 2022.
+1. Abra DramaBox/DramaBox.sln no Visual Studio 2022.
 2. Instale o workload do .NET MAUI.
 3. Restaure os pacotes e execute na plataforma desejada.
