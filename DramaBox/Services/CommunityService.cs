@@ -81,6 +81,8 @@ public sealed class CommunityService
         public int Number { get; set; }
         public string Title { get; set; } = "";
         public string VideoUrl { get; set; } = "";
+        public string SubtitleUrl { get; set; } = "";
+        public string SubtitleFormat { get; set; } = "";
         public int DurationSeconds { get; set; }
     }
 
@@ -96,6 +98,8 @@ public sealed class CommunityService
         public int EpisodeNumber { get; set; }
         public string EpisodeTitle { get; set; } = "";
         public string VideoUrl { get; set; } = "";
+        public string SubtitleUrl { get; set; } = "";
+        public string SubtitleFormat { get; set; } = "";
         public int DurationSeconds { get; set; }
     }
 
@@ -160,6 +164,8 @@ public sealed class CommunityService
             Number = ep.Number,
             Title = ep.Title ?? "",
             VideoUrl = ep.VideoUrl ?? "",
+            SubtitleUrl = ep.SubtitleUrl ?? "",
+            SubtitleFormat = ep.SubtitleFormat ?? "",
             DurationSeconds = ep.DurationSeconds
         })
         .OrderBy(x => x.Number)
@@ -185,6 +191,8 @@ public sealed class CommunityService
             EpisodeNumber = ep.Number,
             EpisodeTitle = ep.Title,
             VideoUrl = ep.VideoUrl,
+            SubtitleUrl = ep.SubtitleUrl,
+            SubtitleFormat = ep.SubtitleFormat,
             DurationSeconds = ep.DurationSeconds
         }).ToList();
     }
@@ -220,6 +228,8 @@ public sealed class CommunityService
                     EpisodeNumber = ep.Number,
                     EpisodeTitle = ep.Title,
                     VideoUrl = ep.VideoUrl,
+                    SubtitleUrl = ep.SubtitleUrl,
+                    SubtitleFormat = ep.SubtitleFormat,
                     DurationSeconds = ep.DurationSeconds
                 });
 
@@ -340,7 +350,9 @@ public sealed class CommunityService
         int number,
         string title,
         string videoUrl,
-        int durationSeconds
+        int durationSeconds,
+        string subtitleUrl = "",
+        string subtitleFormat = ""
     )
     {
         var uid = _session.UserId ?? "";
@@ -359,6 +371,8 @@ public sealed class CommunityService
             Number = number <= 0 ? 1 : number,
             Title = title ?? "",
             VideoUrl = videoUrl ?? "",
+            SubtitleUrl = subtitleUrl ?? "",
+            SubtitleFormat = SubtitleTrackService.NormalizeFormat(subtitleFormat),
             DurationSeconds = Math.Max(0, durationSeconds),
             CreatedAtUnix = NowUnix()
         };

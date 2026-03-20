@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -61,7 +61,7 @@ public partial class CreatorSeriesEditorPage : ContentPage
 
         _series = await _db.GetCommunitySeriesAsync(_seriesId, _session.IdToken);
 
-        TitleLabel.Text = _series?.Title ?? "Série";
+        TitleLabel.Text = _series?.Title ?? "SÃ©rie";
         CoverImage.Source = _series?.CoverUrl ?? _series?.PosterUrl ?? "";
 
         var eps = await _db.GetCommunityEpisodesAsync(_seriesId, _session.IdToken);
@@ -84,13 +84,13 @@ public partial class CreatorSeriesEditorPage : ContentPage
         var uid = _session.UserId ?? "";
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "VocÃª precisa estar logado.", "OK");
             return;
         }
 
         if (_series == null)
         {
-            await DisplayAlert("Capa", "Série inválida.", "OK");
+            await DisplayAlert("Capa", "SÃ©rie invÃ¡lida.", "OK");
             return;
         }
 
@@ -153,33 +153,33 @@ public partial class CreatorSeriesEditorPage : ContentPage
         var uid = _session.UserId ?? "";
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "VocÃª precisa estar logado.", "OK");
             return;
         }
 
         if (_series == null)
         {
-            await DisplayAlert("Episódio", "Série inválida.", "OK");
+            await DisplayAlert("EpisÃ³dio", "SÃ©rie invÃ¡lida.", "OK");
             return;
         }
 
-        var numStr = await DisplayPromptAsync("Novo episódio", "Número (ex: 1):", keyboard: Keyboard.Numeric);
+        var numStr = await DisplayPromptAsync("Novo episÃ³dio", "NÃºmero (ex: 1):", keyboard: Keyboard.Numeric);
         if (string.IsNullOrWhiteSpace(numStr)) return;
 
         if (!int.TryParse(numStr.Trim(), out var number) || number <= 0)
         {
-            await DisplayAlert("Episódio", "Número inválido.", "OK");
+            await DisplayAlert("EpisÃ³dio", "NÃºmero invÃ¡lido.", "OK");
             return;
         }
 
-        var title = await DisplayPromptAsync("Novo episódio", "Título do episódio:");
+        var title = await DisplayPromptAsync("Novo episÃ³dio", "TÃ­tulo do episÃ³dio:");
         if (string.IsNullOrWhiteSpace(title)) return;
 
         try
         {
             FileResult? pick = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Selecione o vídeo (mp4)",
+                PickerTitle = "Selecione o vÃ­deo (mp4)",
                 FileTypes = FilePickerFileType.Videos
             });
 
@@ -188,15 +188,30 @@ public partial class CreatorSeriesEditorPage : ContentPage
             var ext = System.IO.Path.GetExtension(pick.FileName ?? "").ToLowerInvariant();
             if (ext != ".mp4")
             {
-                await DisplayAlert("Episódio", "Por enquanto aceitamos apenas .mp4.", "OK");
+                await DisplayAlert("EpisÃ³dio", "Por enquanto aceitamos apenas .mp4.", "OK");
                 return;
             }
 
             var episodeId = Guid.NewGuid().ToString("N");
 
+            var subtitleSelection = await ResolveCommunitySubtitleAsync(
+                creatorUid: uid,
+                seriesId: _seriesId,
+                episodeId: episodeId,
+                currentSubtitleUrl: "",
+                currentSubtitleFormat: "",
+                allowRemove: false
+            );
+
+            if (!subtitleSelection.proceed)
+            {
+                SetUploadUi(false, "", 0);
+                return;
+            }
+
             await using var videoStream = await pick.OpenReadAsync();
 
-            SetUploadUi(true, "Enviando episódio...", 0.05);
+            SetUploadUi(true, "Enviando episÃ³dio...", 0.05);
 
             var upload = await _st.UploadCommunityEpisodeMp4Async(
                 stream: videoStream,
@@ -209,11 +224,11 @@ public partial class CreatorSeriesEditorPage : ContentPage
             if (!upload.ok)
             {
                 SetUploadUi(false, "", 0);
-                await DisplayAlert("Episódio", upload.message, "OK");
+                await DisplayAlert("EpisÃ³dio", upload.message, "OK");
                 return;
             }
 
-            SetUploadUi(true, "Salvando episódio...", 0.85);
+            SetUploadUi(true, "Salvando episÃ³dio...", 0.85);
 
             var ep = new CommunityEpisode
             {
@@ -221,6 +236,8 @@ public partial class CreatorSeriesEditorPage : ContentPage
                 Number = number,
                 Title = title.Trim(),
                 VideoUrl = upload.url,
+                SubtitleUrl = subtitleSelection.subtitleUrl,
+                SubtitleFormat = subtitleSelection.subtitleFormat,
                 DurationSeconds = 0,
                 CreatedAtUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
             };
@@ -229,7 +246,7 @@ public partial class CreatorSeriesEditorPage : ContentPage
             if (!up.ok)
             {
                 SetUploadUi(false, "", 0);
-                await DisplayAlert("Episódio", up.message, "OK");
+                await DisplayAlert("EpisÃ³dio", up.message, "OK");
                 return;
             }
 
@@ -239,11 +256,11 @@ public partial class CreatorSeriesEditorPage : ContentPage
         catch (Exception ex)
         {
             SetUploadUi(false, "", 0);
-            await DisplayAlert("Episódio", $"Falha ao adicionar episódio: {ex.Message}", "OK");
+            await DisplayAlert("EpisÃ³dio", $"Falha ao adicionar episÃ³dio: {ex.Message}", "OK");
         }
     }
 
-    // Abre o player com FILA COMPLETA (todos episódios)
+    // Abre o player com FILA COMPLETA (todos episÃ³dios)
     private async void OnPlaySeriesClicked(object sender, EventArgs e)
     {
         try
@@ -261,18 +278,20 @@ public partial class CreatorSeriesEditorPage : ContentPage
                 {
                     SeriesId = _seriesId,
                     CreatorName = _series?.CreatorName ?? "Criador",
-                    DramaTitle = _series?.Title ?? "Série",
+                    DramaTitle = _series?.Title ?? "SÃ©rie",
                     DramaCoverUrl = _series?.CoverUrl ?? "",
                     EpisodeId = ep.Id,
                     EpisodeNumber = ep.Number,
                     EpisodeTitle = ep.Title ?? "",
-                    VideoUrl = ep.VideoUrl ?? ""
+                    VideoUrl = ep.VideoUrl ?? "",
+                    SubtitleUrl = ep.SubtitleUrl ?? "",
+                    SubtitleFormat = ep.SubtitleFormat ?? ""
                 });
             }
 
             if (feed.Count == 0)
             {
-                await DisplayAlert("Player", "Essa série ainda não tem episódios.", "OK");
+                await DisplayAlert("Player", "Essa sÃ©rie ainda nÃ£o tem episÃ³dios.", "OK");
                 return;
             }
 
@@ -298,11 +317,11 @@ public partial class CreatorSeriesEditorPage : ContentPage
         var uid = _session.UserId ?? "";
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "VocÃª precisa estar logado.", "OK");
             return;
         }
 
-        var newNumStr = await DisplayPromptAsync("Editar episódio", "Número:",
+        var newNumStr = await DisplayPromptAsync("Editar episÃ³dio", "NÃºmero:",
             initialValue: ep.Number.ToString(),
             keyboard: Keyboard.Numeric);
 
@@ -310,14 +329,14 @@ public partial class CreatorSeriesEditorPage : ContentPage
 
         if (!int.TryParse(newNumStr.Trim(), out var newNumber) || newNumber <= 0)
         {
-            await DisplayAlert("Editar", "Número inválido.", "OK");
+            await DisplayAlert("Editar", "NÃºmero invÃ¡lido.", "OK");
             return;
         }
 
-        var newTitle = await DisplayPromptAsync("Editar episódio", "Título:", initialValue: ep.Title);
+        var newTitle = await DisplayPromptAsync("Editar episÃ³dio", "TÃ­tulo:", initialValue: ep.Title);
         if (string.IsNullOrWhiteSpace(newTitle)) return;
 
-        var replaceVideo = await DisplayAlert("Editar vídeo", "Deseja substituir o vídeo (.mp4) deste episódio?", "Sim", "Não");
+        var replaceVideo = await DisplayAlert("Editar vÃ­deo", "Deseja substituir o vÃ­deo (.mp4) deste episÃ³dio?", "Sim", "NÃ£o");
 
         string videoUrl = ep.VideoUrl ?? "";
 
@@ -327,7 +346,7 @@ public partial class CreatorSeriesEditorPage : ContentPage
             {
                 FileResult? pick = await FilePicker.Default.PickAsync(new PickOptions
                 {
-                    PickerTitle = "Selecione o NOVO vídeo (mp4)",
+                    PickerTitle = "Selecione o NOVO vÃ­deo (mp4)",
                     FileTypes = FilePickerFileType.Videos
                 });
 
@@ -342,7 +361,7 @@ public partial class CreatorSeriesEditorPage : ContentPage
 
                 await using var stream = await pick.OpenReadAsync();
 
-                SetUploadUi(true, "Enviando novo vídeo...", 0.10);
+                SetUploadUi(true, "Enviando novo vÃ­deo...", 0.10);
 
                 var upload = await _st.UploadCommunityEpisodeMp4Async(
                     stream: stream,
@@ -364,14 +383,29 @@ public partial class CreatorSeriesEditorPage : ContentPage
             catch (Exception ex)
             {
                 SetUploadUi(false, "", 0);
-                await DisplayAlert("Editar", $"Falha ao trocar vídeo: {ex.Message}", "OK");
+                await DisplayAlert("Editar", $"Falha ao trocar vÃ­deo: {ex.Message}", "OK");
                 return;
             }
         }
 
+        var subtitleSelection = await ResolveCommunitySubtitleAsync(
+            creatorUid: uid,
+            seriesId: _seriesId,
+            episodeId: ep.Id,
+            currentSubtitleUrl: ep.SubtitleUrl,
+            currentSubtitleFormat: ep.SubtitleFormat,
+            allowRemove: true
+        );
+
+        if (!subtitleSelection.proceed)
+        {
+            SetUploadUi(false, "", 0);
+            return;
+        }
+
         try
         {
-            SetUploadUi(true, "Salvando alterações...", 0.85);
+            SetUploadUi(true, "Salvando alteraÃ§Ãµes...", 0.85);
 
             var updated = new CommunityEpisode
             {
@@ -379,6 +413,8 @@ public partial class CreatorSeriesEditorPage : ContentPage
                 Number = newNumber,
                 Title = newTitle.Trim(),
                 VideoUrl = videoUrl,
+                SubtitleUrl = subtitleSelection.subtitleUrl,
+                SubtitleFormat = subtitleSelection.subtitleFormat,
                 DurationSeconds = ep.DurationSeconds,
                 CreatedAtUnix = ep.CreatedAtUnix
             };
@@ -411,11 +447,11 @@ public partial class CreatorSeriesEditorPage : ContentPage
         var uid = _session.UserId ?? "";
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "VocÃª precisa estar logado.", "OK");
             return;
         }
 
-        var ok = await DisplayAlert("Remover", $"Remover o episódio {ep.Number} – {ep.Title}?", "Remover", "Cancelar");
+        var ok = await DisplayAlert("Remover", $"Remover o episÃ³dio {ep.Number} â€“ {ep.Title}?", "Remover", "Cancelar");
         if (!ok) return;
 
         try
@@ -451,7 +487,7 @@ public partial class CreatorSeriesEditorPage : ContentPage
         if ((sender as ImageButton)?.CommandParameter is not CommunityEpisode ep)
             return;
 
-        PreviewTitle.Text = $"Ep {ep.Number} • {ep.Title}";
+        PreviewTitle.Text = $"Ep {ep.Number} â€¢ {ep.Title}";
         PreviewPlayer.Source = ep.VideoUrl ?? "";
         PreviewOverlay.IsVisible = true;
 
@@ -477,5 +513,102 @@ public partial class CreatorSeriesEditorPage : ContentPage
         UploadTopBar.IsVisible = isUploading;
         UploadText.Text = text ?? (isUploading ? "Enviando..." : "");
         UploadProgress.Progress = Math.Clamp(progress, 0, 1);
+    }
+
+    private async Task<(bool proceed, string subtitleUrl, string subtitleFormat)> ResolveCommunitySubtitleAsync(
+        string creatorUid,
+        string seriesId,
+        string episodeId,
+        string currentSubtitleUrl,
+        string currentSubtitleFormat,
+        bool allowRemove
+    )
+    {
+        var cancelLabel = allowRemove ? "Manter atual" : "Pular";
+        var options = new List<string> { "Selecionar arquivo", "Informar URL" };
+        if (allowRemove)
+            options.Add("Remover");
+
+        var choice = await DisplayActionSheet(
+            "Legenda do episÃ³dio",
+            cancelLabel,
+            null,
+            options.ToArray()
+        );
+
+        if (string.Equals(choice, cancelLabel, StringComparison.Ordinal))
+            return (true, currentSubtitleUrl ?? "", SubtitleTrackService.NormalizeFormat(currentSubtitleFormat));
+
+        if (allowRemove && string.Equals(choice, "Remover", StringComparison.Ordinal))
+            return (true, "", "");
+
+        if (string.Equals(choice, "Informar URL", StringComparison.Ordinal))
+        {
+            var prompt = await DisplayPromptAsync(
+                "Legenda do episÃ³dio",
+                "Informe a URL da legenda (.vtt ou .json):",
+                initialValue: currentSubtitleUrl ?? ""
+            );
+
+            if (prompt == null)
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+
+            var url = prompt.Trim();
+            if (string.IsNullOrWhiteSpace(url))
+                return (true, "", "");
+
+            return (true, url, InferSubtitleFormat(url, currentSubtitleFormat));
+        }
+
+        if (string.Equals(choice, "Selecionar arquivo", StringComparison.Ordinal))
+        {
+            FileResult? pick = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Selecione a legenda (.vtt ou .json)"
+            });
+
+            if (pick == null)
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+
+            var extension = System.IO.Path.GetExtension(pick.FileName ?? "").ToLowerInvariant();
+            if (extension != ".vtt" && extension != ".json")
+            {
+                await DisplayAlert("Legenda", "Formatos aceitos: .vtt ou .json.", "OK");
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+            }
+
+            await using var stream = await pick.OpenReadAsync();
+
+            SetUploadUi(true, "Enviando legenda...", 0.55);
+
+            var upload = await _st.UploadCommunityEpisodeSubtitleAsync(
+                stream: stream,
+                creatorUid: creatorUid,
+                seriesId: seriesId,
+                episodeId: episodeId,
+                extension: extension,
+                idToken: _session.IdToken
+            );
+
+            if (!upload.ok)
+            {
+                SetUploadUi(false, "", 0);
+                await DisplayAlert("Legenda", upload.message, "OK");
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+            }
+
+            return (true, upload.url, extension.TrimStart('.'));
+        }
+
+        return (true, currentSubtitleUrl ?? "", SubtitleTrackService.NormalizeFormat(currentSubtitleFormat));
+    }
+
+    private static string InferSubtitleFormat(string? source, string? fallback = "")
+    {
+        var detected = SubtitleTrackService.DetectFormatFromPath(source);
+        if (!string.IsNullOrWhiteSpace(detected))
+            return detected;
+
+        return SubtitleTrackService.NormalizeFormat(fallback);
     }
 }

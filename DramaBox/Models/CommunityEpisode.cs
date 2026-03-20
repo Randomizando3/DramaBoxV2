@@ -8,6 +8,8 @@ public sealed class CommunityEpisode
 
     // DEVE ser mp4
     public string VideoUrl { get; set; } = "";
+    public string SubtitleUrl { get; set; } = "";
+    public string SubtitleFormat { get; set; } = "";
 
     public int DurationSeconds { get; set; }
     public long CreatedAtUnix { get; set; }

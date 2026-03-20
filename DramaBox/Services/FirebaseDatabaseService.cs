@@ -520,6 +520,9 @@ public sealed class FirebaseDatabaseService
         if (ep.CreatedAtUnix <= 0)
             ep.CreatedAtUnix = NowUnix();
 
+        ep.SubtitleUrl ??= "";
+        ep.SubtitleFormat = SubtitleTrackService.NormalizeFormat(ep.SubtitleFormat);
+
         var (ok, msg) = await PutAsync($"community/series/{seriesId}/episodes/{ep.Id}", ep, idToken);
         if (!ok) return (ok, msg);
 
@@ -2001,6 +2004,8 @@ public sealed class FirebaseDatabaseService
             ["title"] = ep.Title ?? "",
             ["videoUrl"] = ep.VideoUrl ?? "",
             ["thumbUrl"] = ep.ThumbUrl ?? "",
+            ["subtitleUrl"] = ep.SubtitleUrl ?? "",
+            ["subtitleFormat"] = SubtitleTrackService.NormalizeFormat(ep.SubtitleFormat),
             ["durationSec"] = Math.Max(0, ep.DurationSec)
         };
     }
@@ -2038,6 +2043,9 @@ public sealed class FirebaseDatabaseService
             var all = await GetEpisodesAsync(dramaId, idToken);
             episode.Number = all.Count == 0 ? 1 : (all.Max(x => x.Number) + 1);
         }
+
+        episode.SubtitleUrl ??= "";
+        episode.SubtitleFormat = SubtitleTrackService.NormalizeFormat(episode.SubtitleFormat);
 
         var patch = new Dictionary<string, object?>
         {

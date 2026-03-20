@@ -131,4 +131,51 @@ public sealed class FirebaseStorageService
         var objectPath = $"community/{creatorUid}/series/{seriesId}/episodes/{episodeId}.mp4";
         return await UploadAsync(stream, objectPath, "video/mp4", idToken);
     }
+
+    public async Task<(bool ok, string url, string message)> UploadCommunityEpisodeSubtitleAsync(
+        Stream stream,
+        string creatorUid,
+        string seriesId,
+        string episodeId,
+        string extension,
+        string? idToken = null
+    )
+    {
+        var normalized = NormalizeSubtitleExtension(extension);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return (false, "", "Formato de legenda inválido. Use .vtt ou .json.");
+
+        var objectPath = $"community/{creatorUid}/series/{seriesId}/episodes/{episodeId}{normalized}";
+        return await UploadAsync(stream, objectPath, GetSubtitleContentType(normalized), idToken);
+    }
+
+    public async Task<(bool ok, string url, string message)> UploadDramaEpisodeSubtitleAsync(
+        Stream stream,
+        string dramaId,
+        string episodeId,
+        string extension,
+        string? idToken = null
+    )
+    {
+        var normalized = NormalizeSubtitleExtension(extension);
+        if (string.IsNullOrWhiteSpace(normalized))
+            return (false, "", "Formato de legenda inválido. Use .vtt ou .json.");
+
+        var objectPath = $"catalog/dramas/{dramaId}/episodes/{episodeId}{normalized}";
+        return await UploadAsync(stream, objectPath, GetSubtitleContentType(normalized), idToken);
+    }
+
+    private static string NormalizeSubtitleExtension(string? extension)
+    {
+        var ext = (extension ?? "").Trim().ToLowerInvariant();
+        return ext switch
+        {
+            ".vtt" => ".vtt",
+            ".json" => ".json",
+            _ => ""
+        };
+    }
+
+    private static string GetSubtitleContentType(string extension)
+        => extension == ".json" ? "application/json" : "text/vtt";
 }

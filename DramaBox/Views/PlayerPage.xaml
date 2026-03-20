@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="DramaBox.Views.PlayerPage"
     x:Name="Page"
@@ -12,16 +12,16 @@
 
     <Grid>
 
-        <!-- Área "clicável" (tap = pausa/play) + swipe up = próximo -->
+        <!-- Ãrea "clicÃ¡vel" (tap = pausa/play) + swipe up = prÃ³ximo -->
         <Grid x:Name="TapLayer">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnVideoTapped" />
 
-                <!-- Swipe vertical (up = próximo) -->
+                <!-- Swipe vertical (up = prÃ³ximo) -->
                 <PanGestureRecognizer PanUpdated="OnPanUpdated" />
             </Grid.GestureRecognizers>
 
-            <!-- Vídeo -->
+            <!-- VÃ­deo -->
             <toolkit:MediaElement x:Name="Player"
                                   ShouldAutoPlay="True"
                                   ShouldShowPlaybackControls="False"
@@ -56,6 +56,30 @@
                 </LinearGradientBrush>
             </Grid.Background>
         </Grid>
+
+        <Border x:Name="SubtitleOverlay"
+                IsVisible="False"
+                StrokeThickness="0"
+                BackgroundColor="#B3000000"
+                Padding="14,10"
+                Margin="20,0,20,110"
+                HorizontalOptions="Center"
+                VerticalOptions="End"
+                MaximumWidthRequest="560"
+                InputTransparent="True">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="16"/>
+            </Border.StrokeShape>
+
+            <Label x:Name="SubtitleTextLabel"
+                   Text=""
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalTextAlignment="Center"
+                   LineBreakMode="WordWrap"
+                   MaxLines="3"/>
+        </Border>
 
         <!-- Topbar -->
         <Grid Padding="14"
@@ -108,7 +132,7 @@
                     <RoundRectangle CornerRadius="16"/>
                 </Border.StrokeShape>
 
-                <Label Text="⋯"
+                <Label Text="â‹¯"
                        FontSize="22"
                        TextColor="#E5E7EB"
                        HorizontalTextAlignment="Center"
@@ -116,13 +140,13 @@
             </Border>
         </Grid>
 
-        <!-- Overlay: ações (aparecem SOMENTE pausado) -->
+        <!-- Overlay: aÃ§Ãµes (aparecem SOMENTE pausado) -->
         <Grid x:Name="OverlayControls"
               IsVisible="False"
               Opacity="1"
               Padding="14">
 
-            <!-- Botões na direita -->
+            <!-- BotÃµes na direita -->
             <VerticalStackLayout x:Name="RightActions"
                                  HorizontalOptions="End"
                                  VerticalOptions="Center"
@@ -191,7 +215,7 @@
                     </Grid>
                 </Border>
 
-                <!-- PRÓXIMO (mantém do jeito que tá) -->
+                <!-- PRÃ“XIMO (mantÃ©m do jeito que tÃ¡) -->
                 <Border Stroke="#26FFFFFF"
                         StrokeThickness="1"
                         BackgroundColor="#55000000"
@@ -203,7 +227,7 @@
                     <Grid>
                         <Button BackgroundColor="Transparent"
                                 Clicked="OnNextClicked"/>
-                        <Label Text="⏭"
+                        <Label Text="â­"
                                FontSize="18"
                                TextColor="#E5E7EB"
                                HorizontalTextAlignment="Center"
@@ -225,7 +249,7 @@
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="26"/>
                 </Border.StrokeShape>
-                <Label Text="▶"
+                <Label Text="â–¶"
                        FontSize="30"
                        TextColor="#E5E7EB"
                        HorizontalTextAlignment="Center"

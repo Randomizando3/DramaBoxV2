@@ -1,12 +1,14 @@
-using DramaBox.Models;
+ï»¿using DramaBox.Models;
 using DramaBox.Services;
 using Microsoft.Maui.ApplicationModel;
 using Microsoft.Maui.ApplicationModel.DataTransfer;
+using Microsoft.Maui.Dispatching;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DramaBox.Views;
@@ -16,6 +18,7 @@ public partial class TikTokPlayerPage : ContentPage
     private readonly SessionService _session;
     private readonly FirebaseDatabaseService _db;
     private readonly CommunityService _community;
+    private readonly SubtitleTrackService _subtitleService;
 
     private readonly string _mode;   // "feed", "series", "random"
     private readonly string _seriesId;
@@ -67,6 +70,10 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     private int _interactionFetchSeq;
+    private CancellationTokenSource? _subtitleLoadCts;
+    private IDispatcherTimer? _subtitleTimer;
+    private SubtitleTrack _subtitleTrack = SubtitleTrack.Empty;
+    private string _currentSubtitleText = "";
 
     // ===== Pan / Swipe (igual PlayerPage) =====
     private const double SwipeUpThreshold = 70;
@@ -99,6 +106,7 @@ public partial class TikTokPlayerPage : ContentPage
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
         var st = Resolve<FirebaseStorageService>() ?? new FirebaseStorageService(new HttpClient());
         _community = Resolve<CommunityService>() ?? new CommunityService(_db, st, _session);
+        _subtitleService = Resolve<SubtitleTrackService>() ?? new SubtitleTrackService(new HttpClient());
 
         _mode = "feed";
         _seriesId = "";
@@ -123,7 +131,9 @@ public partial class TikTokPlayerPage : ContentPage
                     EpisodeId = x.EpisodeId ?? "",
                     EpisodeNumber = x.EpisodeNumber,
                     EpisodeTitle = x.EpisodeTitle ?? "",
-                    VideoUrl = x.VideoUrl ?? ""
+                    VideoUrl = x.VideoUrl ?? "",
+                    SubtitleUrl = x.SubtitleUrl ?? "",
+                    SubtitleFormat = x.SubtitleFormat ?? ""
                 };
                 Items.Add(it);
                 TrackRecent(it.EpisodeId);
@@ -142,7 +152,7 @@ public partial class TikTokPlayerPage : ContentPage
     }
 
     // =========================================================
-    // B) ABRIR SÉRIE
+    // B) ABRIR SÃ‰RIE
     // =========================================================
     public TikTokPlayerPage(string seriesId, string startEpisodeId = "")
     {
@@ -152,6 +162,7 @@ public partial class TikTokPlayerPage : ContentPage
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
         var st = Resolve<FirebaseStorageService>() ?? new FirebaseStorageService(new HttpClient());
         _community = Resolve<CommunityService>() ?? new CommunityService(_db, st, _session);
+        _subtitleService = Resolve<SubtitleTrackService>() ?? new SubtitleTrackService(new HttpClient());
 
         _mode = "series";
         _seriesId = seriesId ?? "";
@@ -173,6 +184,7 @@ public partial class TikTokPlayerPage : ContentPage
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
         var st = Resolve<FirebaseStorageService>() ?? new FirebaseStorageService(new HttpClient());
         _community = Resolve<CommunityService>() ?? new CommunityService(_db, st, _session);
+        _subtitleService = Resolve<SubtitleTrackService>() ?? new SubtitleTrackService(new HttpClient());
 
         _mode = "random";
         _seriesId = "";
@@ -194,6 +206,7 @@ public partial class TikTokPlayerPage : ContentPage
         _isPlaying = false;
         CurrentIsLiked = false;
         CurrentIsSaved = false;
+        EnsureSubtitleTimer();
 
         if (_mode == "series")
         {
@@ -224,6 +237,9 @@ public partial class TikTokPlayerPage : ContentPage
 
     protected override void OnDisappearing()
     {
+        try { _subtitleLoadCts?.Cancel(); } catch { }
+        StopSubtitleTimer();
+        SetSubtitleText("");
         try { Player?.Stop(); } catch { }
         base.OnDisappearing();
     }
@@ -252,7 +268,7 @@ public partial class TikTokPlayerPage : ContentPage
         _ = EnsureInfiniteRandomAsync();
     }
 
-    // ? Este método é o que faz funcionar no Windows
+    // ? Este mÃ©todo Ã© o que faz funcionar no Windows
     private async Task ScrollToIndexAsync(int index, bool animate)
     {
         if (Items.Count == 0) return;
@@ -353,12 +369,14 @@ public partial class TikTokPlayerPage : ContentPage
                     SeriesId = _seriesId,
                     CreatorUserId = s?.CreatorUserId ?? "",
                     CreatorName = s?.CreatorName ?? "Criador",
-                    DramaTitle = s?.Title ?? "Série",
+                    DramaTitle = s?.Title ?? "SÃ©rie",
                     DramaCoverUrl = s?.CoverUrl ?? "",
                     EpisodeId = ep.Id ?? "",
                     EpisodeNumber = ep.Number,
                     EpisodeTitle = ep.Title ?? "",
-                    VideoUrl = ep.VideoUrl ?? ""
+                    VideoUrl = ep.VideoUrl ?? "",
+                    SubtitleUrl = ep.SubtitleUrl ?? "",
+                    SubtitleFormat = ep.SubtitleFormat ?? ""
                 };
 
                 Items.Add(it);
@@ -434,12 +452,14 @@ public partial class TikTokPlayerPage : ContentPage
                     SeriesId = s.Id,
                     CreatorUserId = s.CreatorUserId ?? "",
                     CreatorName = s.CreatorName ?? "Criador",
-                    DramaTitle = s.Title ?? "Série",
+                    DramaTitle = s.Title ?? "SÃ©rie",
                     DramaCoverUrl = s.CoverUrl ?? "",
                     EpisodeId = candidate.Id ?? "",
                     EpisodeNumber = candidate.Number,
                     EpisodeTitle = candidate.Title ?? "",
-                    VideoUrl = candidate.VideoUrl ?? ""
+                    VideoUrl = candidate.VideoUrl ?? "",
+                    SubtitleUrl = candidate.SubtitleUrl ?? "",
+                    SubtitleFormat = candidate.SubtitleFormat ?? ""
                 };
 
                 temp.Add(it);
@@ -458,7 +478,7 @@ public partial class TikTokPlayerPage : ContentPage
         }
         catch
         {
-            // não zera Items
+            // nÃ£o zera Items
         }
         finally
         {
@@ -472,6 +492,9 @@ public partial class TikTokPlayerPage : ContentPage
     private void PlayCurrent()
     {
         if (Current == null) return;
+
+        _ = LoadSubtitleTrackAsync(Current);
+        EnsureSubtitleTimer();
 
         MainThread.BeginInvokeOnMainThread(() =>
         {
@@ -704,7 +727,7 @@ public partial class TikTokPlayerPage : ContentPage
         var uid = (_session.UserId ?? "").Trim();
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "VocÃª precisa estar logado.", "OK");
             return;
         }
 
@@ -741,7 +764,7 @@ public partial class TikTokPlayerPage : ContentPage
             await Share.Default.RequestAsync(new ShareTextRequest
             {
                 Title = "Compartilhar",
-                Text = $"Assista: {it.DramaTitle} — Ep. {it.EpisodeNumber}: {it.EpisodeTitle}"
+                Text = $"Assista: {it.DramaTitle} â€” Ep. {it.EpisodeNumber}: {it.EpisodeTitle}"
             });
         }
         catch { }
@@ -764,7 +787,7 @@ public partial class TikTokPlayerPage : ContentPage
         var uid = (_session.UserId ?? "").Trim();
         if (string.IsNullOrWhiteSpace(uid))
         {
-            await DisplayAlert("Conta", "Você precisa estar logado.", "OK");
+            await DisplayAlert("Conta", "VocÃª precisa estar logado.", "OK");
             return;
         }
 
@@ -786,6 +809,89 @@ public partial class TikTokPlayerPage : ContentPage
         CurrentIsSaved = nowSaved;
     }
 
+    private void EnsureSubtitleTimer()
+    {
+        if (Dispatcher == null)
+            return;
+
+        if (_subtitleTimer == null)
+        {
+            _subtitleTimer = Dispatcher.CreateTimer();
+            _subtitleTimer.Interval = TimeSpan.FromMilliseconds(200);
+            _subtitleTimer.Tick += (_, _) => UpdateSubtitleOverlay();
+        }
+
+        if (!_subtitleTimer.IsRunning)
+            _subtitleTimer.Start();
+    }
+
+    private void StopSubtitleTimer()
+    {
+        if (_subtitleTimer?.IsRunning == true)
+            _subtitleTimer.Stop();
+    }
+
+    private async Task LoadSubtitleTrackAsync(EpisodeItem? episode)
+    {
+        try { _subtitleLoadCts?.Cancel(); } catch { }
+
+        _subtitleLoadCts = new CancellationTokenSource();
+        _subtitleTrack = SubtitleTrack.Empty;
+        SetSubtitleText("");
+
+        var subtitleUrl = episode?.SubtitleUrl ?? "";
+        if (string.IsNullOrWhiteSpace(subtitleUrl))
+            return;
+
+        try
+        {
+            var track = await _subtitleService.LoadFromUrlAsync(
+                subtitleUrl,
+                episode?.SubtitleFormat,
+                _subtitleLoadCts.Token
+            );
+
+            if (_subtitleLoadCts.IsCancellationRequested)
+                return;
+
+            _subtitleTrack = track;
+            MainThread.BeginInvokeOnMainThread(UpdateSubtitleOverlay);
+        }
+        catch
+        {
+            _subtitleTrack = SubtitleTrack.Empty;
+            MainThread.BeginInvokeOnMainThread(() => SetSubtitleText(""));
+        }
+    }
+
+    private void UpdateSubtitleOverlay()
+    {
+        if (_subtitleTrack == null || !_subtitleTrack.HasCues)
+        {
+            SetSubtitleText("");
+            return;
+        }
+
+        var position = Player?.Position ?? TimeSpan.Zero;
+        var text = _subtitleTrack.GetTextAt(position);
+        SetSubtitleText(text);
+    }
+
+    private void SetSubtitleText(string? text)
+    {
+        var normalized = (text ?? "").Trim();
+        if (string.Equals(_currentSubtitleText, normalized, StringComparison.Ordinal))
+            return;
+
+        _currentSubtitleText = normalized;
+
+        if (SubtitleTextLabel != null)
+            SubtitleTextLabel.Text = normalized;
+
+        if (SubtitleOverlay != null)
+            SubtitleOverlay.IsVisible = !string.IsNullOrWhiteSpace(normalized);
+    }
+
     // =========================================================
     // Model interno
     // =========================================================
@@ -802,5 +908,7 @@ public partial class TikTokPlayerPage : ContentPage
         public int EpisodeNumber { get; set; }
         public string EpisodeTitle { get; set; } = "";
         public string VideoUrl { get; set; } = "";
+        public string SubtitleUrl { get; set; } = "";
+        public string SubtitleFormat { get; set; } = "";
     }
 }

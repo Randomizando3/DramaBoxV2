@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="DramaBox.Views.TikTokPlayerPage"
     x:Name="Page"
@@ -13,7 +13,7 @@
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- ========================= -->
-        <!-- ROW 1 (conteúdo / vídeo) -->
+        <!-- ROW 1 (conteÃºdo / vÃ­deo) -->
         <!-- ========================= -->
         <Grid Grid.Row="1">
 
@@ -48,7 +48,7 @@
                 </CarouselView.ItemTemplate>
             </CarouselView>
 
-            <!-- Tap + Pan SOMENTE na área do vídeo -->
+            <!-- Tap + Pan SOMENTE na Ã¡rea do vÃ­deo -->
             <Grid x:Name="TapLayer"
                   ZIndex="2"
                   BackgroundColor="Transparent">
@@ -72,6 +72,31 @@
                 </Grid.Background>
             </Grid>
 
+            <Border x:Name="SubtitleOverlay"
+                    ZIndex="5"
+                    IsVisible="False"
+                    StrokeThickness="0"
+                    BackgroundColor="#B3000000"
+                    Padding="14,10"
+                    Margin="16,0,16,110"
+                    HorizontalOptions="Center"
+                    VerticalOptions="End"
+                    MaximumWidthRequest="560"
+                    InputTransparent="True">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="16"/>
+                </Border.StrokeShape>
+
+                <Label x:Name="SubtitleTextLabel"
+                       Text=""
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       HorizontalTextAlignment="Center"
+                       LineBreakMode="WordWrap"
+                       MaxLines="3"/>
+            </Border>
+
             <!-- Infos inferior esquerdo -->
             <Grid ZIndex="4"
                   Padding="16"
@@ -93,7 +118,7 @@
                 </VerticalStackLayout>
             </Grid>
 
-            <!-- Botões direita (aparece quando pausado) -->
+            <!-- BotÃµes direita (aparece quando pausado) -->
             <Grid ZIndex="6"
                   Padding="14"
                   VerticalOptions="Center"
@@ -167,7 +192,7 @@
                                      Clicked="OnPlaylistClicked"/>
                     </Border>
 
-                    <!-- PRÓXIMO -->
+                    <!-- PRÃ“XIMO -->
                     <Border Stroke="#26FFFFFF"
                             StrokeThickness="1"
                             BackgroundColor="#55111827"
@@ -241,7 +266,7 @@
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="12"/>
                 </Border.StrokeShape>
-                <Label Text="⋯"
+                <Label Text="â‹¯"
                        FontSize="18"
                        TextColor="#E5E7EB"
                        HorizontalTextAlignment="Center"

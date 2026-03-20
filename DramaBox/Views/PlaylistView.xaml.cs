@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -88,8 +88,8 @@ public partial class PlaylistView : ContentPage
         if (sender is not BindableObject bo || bo.BindingContext is not FirebaseDatabaseService.ContinueWatchingItem it)
             return;
 
-        // monta um "DramaEpisode" mÌnimo pra reutilizar PlayerPage
-        var ep = new DramaEpisode
+        var ep = await TryResolveDramaEpisodeAsync(it);
+        ep ??= new DramaEpisode
         {
             Id = it.EpisodeId,
             Number = it.EpisodeNumber,
@@ -117,7 +117,7 @@ public partial class PlaylistView : ContentPage
         try
         {
             // ? 1) Tenta tratar como "Community Series"
-            // Se existir community/series/{dramaId}, ent„o È sÈrie da comunidade.
+            // Se existir community/series/{dramaId}, ent√£o √© s√©rie da comunidade.
             var series = await _db.GetCommunitySeriesAsync(dramaId, _session.IdToken);
 
             if (series != null && !string.IsNullOrWhiteSpace(series.Id))
@@ -126,33 +126,35 @@ public partial class PlaylistView : ContentPage
 
                 if (eps != null && eps.Count > 0)
                 {
-                    // ? Monta o FEED COMPLETO (todos episÛdios) para swipe funcionar
+                    // ? Monta o FEED COMPLETO (todos epis√≥dios) para swipe funcionar
                     var feed = eps
                         .OrderBy(x => x.Number)
                         .Select(ep => new CommunityService.EpisodeFeedItem
                         {
                             SeriesId = series.Id,
                             CreatorName = series.CreatorName ?? it.Subtitle ?? "Criador",
-                            DramaTitle = series.Title ?? it.Title ?? "SÈrie",
+                            DramaTitle = series.Title ?? it.Title ?? "S√©rie",
                             DramaCoverUrl = series.CoverUrl ?? it.CoverUrl ?? "",
                             EpisodeId = ep.Id ?? "",
                             EpisodeNumber = ep.Number,
                             EpisodeTitle = ep.Title ?? "",
-                            VideoUrl = ep.VideoUrl ?? ""
+                            VideoUrl = ep.VideoUrl ?? "",
+                            SubtitleUrl = ep.SubtitleUrl ?? "",
+                            SubtitleFormat = ep.SubtitleFormat ?? ""
                         })
                         .ToList();
 
-                    // abre no TikTok com o primeiro episÛdio
+                    // abre no TikTok com o primeiro epis√≥dio
                     await Navigation.PushAsync(new TikTokPlayerPage(feed, startIndex: 0));
                     return;
                 }
 
-                // Se a sÈrie existe mas n„o trouxe eps, ainda tenta abrir a p·gina de sÈrie (vai tentar carregar l·)
+                // Se a s√©rie existe mas n√£o trouxe eps, ainda tenta abrir a p√°gina de s√©rie (vai tentar carregar l√°)
                 await Navigation.PushAsync(new TikTokPlayerPage(series.Id));
                 return;
             }
 
-            // ? 2) N„o È community => fluxo padr„o (cat·logo geral)
+            // ? 2) N√£o √© community => fluxo padr√£o (cat√°logo geral)
             await Navigation.PushAsync(new DramaDetailsPage(dramaId));
         }
         catch
@@ -184,5 +186,28 @@ public partial class PlaylistView : ContentPage
             SavedItems.Remove(found);
 
         UpdateEmptyStates();
+    }
+
+    private async Task<DramaEpisode?> TryResolveDramaEpisodeAsync(FirebaseDatabaseService.ContinueWatchingItem item)
+    {
+        if (item == null || string.IsNullOrWhiteSpace(item.DramaId))
+            return null;
+
+        try
+        {
+            var episodes = await _db.GetEpisodesAsync(item.DramaId, _session.IdToken);
+            if (episodes == null || episodes.Count == 0)
+                return null;
+
+            var byId = episodes.FirstOrDefault(x => string.Equals(x.Id, item.EpisodeId, StringComparison.Ordinal));
+            if (byId != null)
+                return byId;
+
+            return episodes.FirstOrDefault(x => x.Number == item.EpisodeNumber);
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

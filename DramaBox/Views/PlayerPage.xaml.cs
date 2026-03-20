@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DramaBox.Models;
 using DramaBox.Services;
 using Microsoft.Maui.ApplicationModel;
+using Microsoft.Maui.Dispatching;
 
 namespace DramaBox.Views;
 
@@ -13,6 +14,7 @@ public partial class PlayerPage : ContentPage
 {
     private readonly FirebaseDatabaseService _db;
     private readonly SessionService _session;
+    private readonly SubtitleTrackService _subtitleService;
 
     private string _dramaId = "";
     private string _dramaTitle = "";
@@ -21,6 +23,10 @@ public partial class PlayerPage : ContentPage
 
     private string _url = "";
     private CancellationTokenSource? _loopCts;
+    private CancellationTokenSource? _subtitleLoadCts;
+    private IDispatcherTimer? _subtitleTimer;
+    private SubtitleTrack _subtitleTrack = SubtitleTrack.Empty;
+    private string _currentSubtitleText = "";
 
     private bool _isPaused;
     private List<DramaEpisode>? _episodesCache;
@@ -40,12 +46,13 @@ public partial class PlayerPage : ContentPage
     {
         InitializeComponent();
 
-        // garante que TabBar n„o apareÁa MESMO dentro do Shell
+        // garante que TabBar n√£o apare√ßa MESMO dentro do Shell
         Shell.SetTabBarIsVisible(this, false);
         Shell.SetNavBarIsVisible(this, false);
 
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
         _session = Resolve<SessionService>() ?? new SessionService();
+        _subtitleService = Resolve<SubtitleTrackService>() ?? new SubtitleTrackService(new HttpClient());
     }
 
     public PlayerPage(string dramaId, string dramaTitle, string coverUrl, DramaEpisode episode) : this()
@@ -59,7 +66,7 @@ public partial class PlayerPage : ContentPage
         _url = episode?.VideoUrl ?? "";
     }
 
-    // evite usar isso no app (n„o salva continue sem dramaId)
+    // evite usar isso no app (n√£o salva continue sem dramaId)
     public PlayerPage(string title, string url) : this()
     {
         Title = title ?? "";
@@ -77,11 +84,13 @@ public partial class PlayerPage : ContentPage
             return;
 
         Player.Source = _url;
+        _ = LoadSubtitleTrackAsync(_episode);
+        EnsureSubtitleTimer();
 
         try { Player.Play(); } catch { }
         SetPaused(false);
 
-        // salva "continue" imediatamente (posiÁ„o 0)
+        // salva "continue" imediatamente (posi√ß√£o 0)
         _ = UpsertContinueEpisodeOnlyAsync();
 
         _loopCts?.Cancel();
@@ -92,6 +101,9 @@ public partial class PlayerPage : ContentPage
     protected override async void OnDisappearing()
     {
         try { _loopCts?.Cancel(); } catch { }
+        try { _subtitleLoadCts?.Cancel(); } catch { }
+        StopSubtitleTimer();
+        SetSubtitleText("");
 
         await SaveProgressAsync(force: true);
 
@@ -133,11 +145,11 @@ public partial class PlayerPage : ContentPage
         => await PlayNextAsync();
 
     // =========================================================
-    // Swipe Up => PrÛximo
+    // Swipe Up => Pr√≥ximo
     // =========================================================
     private async void OnPanUpdated(object sender, PanUpdatedEventArgs e)
     {
-        // n„o deixa swipe disparar em sequÍncia
+        // n√£o deixa swipe disparar em sequ√™ncia
         if (_swipeCooldown) return;
 
         switch (e.StatusType)
@@ -154,13 +166,13 @@ public partial class PlayerPage : ContentPage
                 // deltaY negativo = arrastou para cima
                 var deltaY = e.TotalY - _panStartY;
 
-                // Se j· passou do threshold, consome e toca prÛximo
+                // Se j√° passou do threshold, consome e toca pr√≥ximo
                 if (deltaY <= -SwipeUpThreshold)
                 {
                     _panConsumed = true;
                     _panMaybeSwipe = false;
 
-                    // IMPORTANTE: n„o pausar no tap acidental
+                    // IMPORTANTE: n√£o pausar no tap acidental
                     // (consumimos aqui e evitamos efeitos colaterais)
                     await TriggerNextFromSwipeAsync();
                 }
@@ -180,12 +192,12 @@ public partial class PlayerPage : ContentPage
         {
             _swipeCooldown = true;
 
-            // mesma aÁ„o do bot„o "PrÛximo"
+            // mesma a√ß√£o do bot√£o "Pr√≥ximo"
             await PlayNextAsync();
         }
         finally
         {
-            // pequeno cooldown para n„o disparar v·rias vezes num ˙nico gesto
+            // pequeno cooldown para n√£o disparar v√°rias vezes num √∫nico gesto
             _ = Task.Run(async () =>
             {
                 await Task.Delay(SwipeCooldownMs);
@@ -195,7 +207,7 @@ public partial class PlayerPage : ContentPage
     }
 
     // =============================
-    // A«’ES
+    // A√á√ïES
     // =============================
 
     private async void OnAddClicked(object sender, EventArgs e)
@@ -222,8 +234,8 @@ public partial class PlayerPage : ContentPage
             var title = _dramaTitle;
             var epTitle = _episode?.Title ?? Title;
             var text = string.IsNullOrWhiteSpace(title)
-                ? $"Assiste esse episÛdio: {epTitle}"
-                : $"Assiste {title} ï {epTitle}";
+                ? $"Assiste esse epis√≥dio: {epTitle}"
+                : $"Assiste {title} ‚Ä¢ {epTitle}";
 
             await Share.Default.RequestAsync(new ShareTextRequest
             {
@@ -263,7 +275,7 @@ public partial class PlayerPage : ContentPage
             if (next == null)
             {
                 SetPaused(true);
-                await DisplayAlert("Fim", "VocÍ chegou ao ˙ltimo episÛdio.", "OK");
+                await DisplayAlert("Fim", "Voc√™ chegou ao √∫ltimo epis√≥dio.", "OK");
                 return;
             }
 
@@ -272,6 +284,7 @@ public partial class PlayerPage : ContentPage
             _url = next.VideoUrl ?? "";
 
             Player.Source = _url;
+            _ = LoadSubtitleTrackAsync(next);
 
             try { Player.Play(); } catch { }
             SetPaused(false);
@@ -280,7 +293,7 @@ public partial class PlayerPage : ContentPage
         }
         catch
         {
-            // n„o quebra
+            // n√£o quebra
         }
     }
 
@@ -360,5 +373,88 @@ public partial class PlayerPage : ContentPage
             );
         }
         catch { }
+    }
+
+    private void EnsureSubtitleTimer()
+    {
+        if (Dispatcher == null)
+            return;
+
+        if (_subtitleTimer == null)
+        {
+            _subtitleTimer = Dispatcher.CreateTimer();
+            _subtitleTimer.Interval = TimeSpan.FromMilliseconds(200);
+            _subtitleTimer.Tick += (_, _) => UpdateSubtitleOverlay();
+        }
+
+        if (!_subtitleTimer.IsRunning)
+            _subtitleTimer.Start();
+    }
+
+    private void StopSubtitleTimer()
+    {
+        if (_subtitleTimer?.IsRunning == true)
+            _subtitleTimer.Stop();
+    }
+
+    private async Task LoadSubtitleTrackAsync(DramaEpisode? episode)
+    {
+        try { _subtitleLoadCts?.Cancel(); } catch { }
+
+        _subtitleLoadCts = new CancellationTokenSource();
+        _subtitleTrack = SubtitleTrack.Empty;
+        SetSubtitleText("");
+
+        var subtitleUrl = episode?.SubtitleUrl ?? "";
+        if (string.IsNullOrWhiteSpace(subtitleUrl))
+            return;
+
+        try
+        {
+            var track = await _subtitleService.LoadFromUrlAsync(
+                subtitleUrl,
+                episode?.SubtitleFormat,
+                _subtitleLoadCts.Token
+            );
+
+            if (_subtitleLoadCts.IsCancellationRequested)
+                return;
+
+            _subtitleTrack = track;
+            MainThread.BeginInvokeOnMainThread(UpdateSubtitleOverlay);
+        }
+        catch
+        {
+            _subtitleTrack = SubtitleTrack.Empty;
+            MainThread.BeginInvokeOnMainThread(() => SetSubtitleText(""));
+        }
+    }
+
+    private void UpdateSubtitleOverlay()
+    {
+        if (_subtitleTrack == null || !_subtitleTrack.HasCues)
+        {
+            SetSubtitleText("");
+            return;
+        }
+
+        var position = Player?.Position ?? TimeSpan.Zero;
+        var text = _subtitleTrack.GetTextAt(position);
+        SetSubtitleText(text);
+    }
+
+    private void SetSubtitleText(string? text)
+    {
+        var normalized = (text ?? "").Trim();
+        if (string.Equals(_currentSubtitleText, normalized, StringComparison.Ordinal))
+            return;
+
+        _currentSubtitleText = normalized;
+
+        if (SubtitleTextLabel != null)
+            SubtitleTextLabel.Text = normalized;
+
+        if (SubtitleOverlay != null)
+            SubtitleOverlay.IsVisible = !string.IsNullOrWhiteSpace(normalized);
     }
 }

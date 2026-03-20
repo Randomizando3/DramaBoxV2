@@ -7,5 +7,7 @@ public sealed class DramaEpisode
     public string Title { get; set; } = "";
     public string VideoUrl { get; set; } = "";
     public string ThumbUrl { get; set; } = "";
+    public string SubtitleUrl { get; set; } = "";
+    public string SubtitleFormat { get; set; } = "";
     public int DurationSec { get; set; } = 0; // opcional
 }

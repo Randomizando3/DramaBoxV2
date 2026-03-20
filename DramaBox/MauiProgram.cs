@@ -37,6 +37,7 @@ namespace DramaBox
             builder.Services.AddSingleton<SessionService>();
             builder.Services.AddSingleton<FirebaseAuthService>();
             builder.Services.AddSingleton<FirebaseDatabaseService>();
+            builder.Services.AddSingleton<SubtitleTrackService>();
 
             builder.Services.AddTransient<LoginView>();
             builder.Services.AddTransient<RegisterView>();

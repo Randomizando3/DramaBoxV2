@@ -228,6 +228,9 @@
                                             <Button Text="Add episodio"
                                                     Clicked="OnAddDramaEpisodeClicked"
                                                     CommandParameter="{Binding .}" />
+                                            <Button Text="Legenda episodio"
+                                                    Clicked="OnUpdateDramaSubtitleClicked"
+                                                    CommandParameter="{Binding .}" />
                                             <Button Text="Remover episodio"
                                                     Clicked="OnRemoveDramaEpisodeClicked"
                                                     CommandParameter="{Binding .}" />

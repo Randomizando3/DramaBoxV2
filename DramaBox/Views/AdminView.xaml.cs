@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using DramaBox.Models;
 using DramaBox.Services;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Storage;
 
 namespace DramaBox.Views;
 
@@ -21,6 +22,7 @@ public partial class AdminView : ContentPage
     private readonly SessionService _session;
     private readonly FirebaseDatabaseService _db;
     private readonly FirebaseAuthService _auth;
+    private readonly FirebaseStorageService _st;
 
     private readonly ObservableCollection<PayoutRowVm> _payouts = new();
     private readonly ObservableCollection<UserRowVm> _users = new();
@@ -38,6 +40,7 @@ public partial class AdminView : ContentPage
         _session = Resolve<SessionService>() ?? new SessionService();
         _db = Resolve<FirebaseDatabaseService>() ?? new FirebaseDatabaseService(new HttpClient());
         _auth = Resolve<FirebaseAuthService>() ?? new FirebaseAuthService(new HttpClient());
+        _st = Resolve<FirebaseStorageService>() ?? new FirebaseStorageService(new HttpClient());
 
         PayoutList.ItemsSource = _payouts;
         UsersList.ItemsSource = _users;
@@ -576,17 +579,73 @@ public partial class AdminView : ContentPage
         var durStr = await DisplayPromptAsync("Adicionar episodio", "Duracao em segundos (opcional):", initialValue: "0");
         _ = int.TryParse(durStr, out var duration);
 
+        var episodeId = Guid.NewGuid().ToString("N");
+
+        var subtitleSelection = await ResolveDramaSubtitleAsync(
+            dramaId: row.DramaId,
+            episodeId: episodeId,
+            currentSubtitleUrl: "",
+            currentSubtitleFormat: "",
+            allowRemove: false
+        );
+
+        if (!subtitleSelection.proceed)
+            return;
+
         var ep = new DramaEpisode
         {
+            Id = episodeId,
             Number = Math.Max(0, number),
             Title = title.Trim(),
             VideoUrl = video.Trim(),
             ThumbUrl = thumb.Trim(),
+            SubtitleUrl = subtitleSelection.subtitleUrl,
+            SubtitleFormat = subtitleSelection.subtitleFormat,
             DurationSec = Math.Max(0, duration)
         };
 
         var r = await _db.UpsertDramaEpisodeAsync(row.DramaId, ep, _session.IdToken);
         await DisplayAlert("Discover", r.ok ? $"Episodio salvo. ID: {r.episodeId}" : r.message, "OK");
+        await LoadDramasAsync();
+    }
+
+    private async void OnUpdateDramaSubtitleClicked(object sender, EventArgs e)
+    {
+        if (sender is not Button b || b.CommandParameter is not DramaRowVm row) return;
+
+        var numStr = await DisplayPromptAsync("Legenda do episodio", $"Numero do episodio em \"{row.MainText}\":");
+        if (string.IsNullOrWhiteSpace(numStr)) return;
+
+        if (!int.TryParse(numStr.Trim(), out var number) || number <= 0)
+        {
+            await DisplayAlert("Discover", "Numero invalido.", "OK");
+            return;
+        }
+
+        var episodes = await _db.GetEpisodesAsync(row.DramaId, _session.IdToken);
+        var episode = episodes.FirstOrDefault(x => x.Number == number);
+        if (episode == null || string.IsNullOrWhiteSpace(episode.Id))
+        {
+            await DisplayAlert("Discover", "Episodio nao encontrado.", "OK");
+            return;
+        }
+
+        var subtitleSelection = await ResolveDramaSubtitleAsync(
+            dramaId: row.DramaId,
+            episodeId: episode.Id,
+            currentSubtitleUrl: episode.SubtitleUrl,
+            currentSubtitleFormat: episode.SubtitleFormat,
+            allowRemove: true
+        );
+
+        if (!subtitleSelection.proceed)
+            return;
+
+        episode.SubtitleUrl = subtitleSelection.subtitleUrl;
+        episode.SubtitleFormat = subtitleSelection.subtitleFormat;
+
+        var r = await _db.UpsertDramaEpisodeAsync(row.DramaId, episode, _session.IdToken);
+        await DisplayAlert("Discover", r.ok ? "Legenda atualizada." : r.message, "OK");
         await LoadDramasAsync();
     }
 
@@ -631,6 +690,98 @@ public partial class AdminView : ContentPage
         await LoadDramasAsync();
     }
 
+    private async Task<(bool proceed, string subtitleUrl, string subtitleFormat)> ResolveDramaSubtitleAsync(
+        string dramaId,
+        string episodeId,
+        string currentSubtitleUrl,
+        string currentSubtitleFormat,
+        bool allowRemove
+    )
+    {
+        var cancelLabel = allowRemove ? "Manter atual" : "Pular";
+        var options = new List<string> { "Selecionar arquivo", "Informar URL" };
+        if (allowRemove)
+            options.Add("Remover");
+
+        var choice = await DisplayActionSheet(
+            "Legenda do episodio",
+            cancelLabel,
+            null,
+            options.ToArray()
+        );
+
+        if (string.Equals(choice, cancelLabel, StringComparison.Ordinal))
+            return (true, currentSubtitleUrl ?? "", SubtitleTrackService.NormalizeFormat(currentSubtitleFormat));
+
+        if (allowRemove && string.Equals(choice, "Remover", StringComparison.Ordinal))
+            return (true, "", "");
+
+        if (string.Equals(choice, "Informar URL", StringComparison.Ordinal))
+        {
+            var prompt = await DisplayPromptAsync(
+                "Legenda do episodio",
+                "Informe a URL da legenda (.vtt ou .json):",
+                initialValue: currentSubtitleUrl ?? ""
+            );
+
+            if (prompt == null)
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+
+            var url = prompt.Trim();
+            if (string.IsNullOrWhiteSpace(url))
+                return (true, "", "");
+
+            return (true, url, InferSubtitleFormat(url, currentSubtitleFormat));
+        }
+
+        if (string.Equals(choice, "Selecionar arquivo", StringComparison.Ordinal))
+        {
+            FileResult? pick = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Selecione a legenda (.vtt ou .json)"
+            });
+
+            if (pick == null)
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+
+            var extension = System.IO.Path.GetExtension(pick.FileName ?? "").ToLowerInvariant();
+            if (extension != ".vtt" && extension != ".json")
+            {
+                await DisplayAlert("Legenda", "Formatos aceitos: .vtt ou .json.", "OK");
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+            }
+
+            await using var stream = await pick.OpenReadAsync();
+
+            var upload = await _st.UploadDramaEpisodeSubtitleAsync(
+                stream: stream,
+                dramaId: dramaId,
+                episodeId: episodeId,
+                extension: extension,
+                idToken: _session.IdToken
+            );
+
+            if (!upload.ok)
+            {
+                await DisplayAlert("Legenda", upload.message, "OK");
+                return (false, currentSubtitleUrl ?? "", currentSubtitleFormat ?? "");
+            }
+
+            return (true, upload.url, extension.TrimStart('.'));
+        }
+
+        return (true, currentSubtitleUrl ?? "", SubtitleTrackService.NormalizeFormat(currentSubtitleFormat));
+    }
+
+    private static string InferSubtitleFormat(string? source, string? fallback = "")
+    {
+        var detected = SubtitleTrackService.DetectFormatFromPath(source);
+        if (!string.IsNullOrWhiteSpace(detected))
+            return detected;
+
+        return SubtitleTrackService.NormalizeFormat(fallback);
+    }
+
     private sealed class PayoutRowVm
     {
         public string RequestId { get; set; } = "";
@@ -663,4 +814,3 @@ public partial class AdminView : ContentPage
         public string SubText { get; set; } = "";
     }
 }
-
